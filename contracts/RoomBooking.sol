@@ -10,6 +10,7 @@ struct Room {
     int128 latitude;
     int128 longitude;
     bool bookable;
+    uint pricePerDay;
     string uri;
     string url;
     string amenities;
