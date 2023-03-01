@@ -6,6 +6,6 @@ interface OracleHelper {
 
     event OracleResponse(address indexed oracle, string response, uint responseTime);
     
-    function callMapForRoom(int128 latitude, int128 longitude) external view returns(string);
+    function callMapForRoom(int128 latitude, int128 longitude) external view returns(string memory);
 
 }

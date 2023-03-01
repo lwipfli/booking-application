@@ -2,15 +2,18 @@ pragma solidity ^0.8.9;
 
 struct Room {
 
-    string latitude;
-    string longitude;
+    address owner;
+    int latitudeInteger;
+    uint latitudeDecimals;
+    int longitude;
+    uint longitudeDecimals;
     uint searchRadius;
     bool bookable;
     uint pricePerDay;
     string uri;
-    string url;
     string amenities;
     Booking[] bookings;
+    uint numberOfBookings;
 }
 
 struct Booking {
