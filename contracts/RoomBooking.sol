@@ -12,7 +12,8 @@ struct Room {
     uint pricePerDay;
     string uri;
     string amenities;
-    Booking[] bookings;
+
+    mapping(uint => Booking) bookings;
     uint numberOfBookings;
 }
 

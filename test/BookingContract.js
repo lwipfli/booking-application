@@ -27,9 +27,9 @@ describe("BookingContract", function(){
         it("Room posting successful", async function () {
                 const { booking, owner, otherAccount } = await loadFixture(deployBasicFixture);
 
-                expect(await booking.numberOfRooms()).to.equal(0);
-                await booking.postRoom(50, 0,  0, 0, otherAccount.address, 20, "TestURI", 50, false);
-                expect(await booking.numberOfRooms()).to.equal(1);
+                expect(await booking.getNumberOfRooms()).to.equal(0);
+                await booking.connect(otherAccount).postRoom(50, 0,  0, 0, 20, "TestURI", 50, false);
+                expect(await booking.getNumberOfRooms()).to.equal(1);
 
         });
     });
