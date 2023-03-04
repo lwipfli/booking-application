@@ -28,10 +28,18 @@ describe("BookingContract", function(){
                 const { booking, owner, otherAccount } = await loadFixture(deployBasicFixture);
 
                 expect(await booking.getNumberOfRooms()).to.equal(0);
-                await booking.connect(otherAccount).postRoom(50, 0,  0, 0, 20, "TestURI", 50, false);
-                expect(await booking.getNumberOfRooms()).to.equal(1);
+                
+                expect((await booking.getRoomsByOwner(otherAccount.address)).length).to.equal(0);
 
+                await booking.connect(otherAccount).postRoom(50, 0,  0, 0, 20, "TestURI", 50, false, false);
+                
+                expect(await booking.getNumberOfRooms()).to.equal(1);
+                
+                expect((await booking.getRoomsByOwner(otherAccount.address)).length).to.equal(1);
+
+                //expect(booking.getRoomsByOwner(otherAccount.address).length).to.equal(0);
         });
+
     });
 
 })
