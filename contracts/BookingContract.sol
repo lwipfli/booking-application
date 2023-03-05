@@ -37,6 +37,8 @@ contract BookingContract {
 
     function postRoom(int latitude, uint latitudeDecimals,int longitude, uint longitudeDecimals, uint pricePerDay, string calldata uri, uint searchRadius, bool adaptPrice, bool searchSurroundings ) external {
         // Check if it is possible to create a new room.
+        
+        require((-90 <= latitude)&&(latitude<=90), "Latitude is not a value between -90 and 90.");
 
         uint idx;
         string memory amenities;
@@ -50,6 +52,21 @@ contract BookingContract {
     function addRoomIndex(address owner, uint roomIndex) internal {
         roomsCreatedByOwners[owner].push(roomIndex);
     }
+
+    function convertLatLongToString (int value, uint decimals) public view returns (string memory){
+        string memory prefix = "";
+        int val = value;
+        if(val<0){
+            val = val * (-1);
+            prefix = "-";
+        }
+
+        return string(abi.encodePacked(prefix,Strings.toString(uint(val)),",",Strings.toString(uint(decimals))));
+    }
+
+    //function findRooms(int latitude, uint latitudeDecimals,int longitude, uint longitudeDecimals) public view returns ( uint[] memory indexList) {
+
+    //}
 
     function createRoom(int latitude, uint latitudeDecimals,int longitude, uint longitudeDecimals, uint pricePerDay, string calldata uri, uint searchRadius, bool adaptPrice, bool searchSurroundings) internal returns (uint, string memory){
         // Room posting requires workaround due to structs using structs and mapping.

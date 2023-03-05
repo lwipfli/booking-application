@@ -48,8 +48,31 @@ describe("BookingContract", function(){
                 expect(await booking.getNumberOfRooms()).to.equal(1);
                 
                 expect((await booking.getRoomsByOwner(otherAccount.address)).length).to.equal(1);
+                expect((await booking.getRoomsByOwner(otherAccount.address))[0]).to.equal(0);
 
         });
+
+        it("Room posting should revert if inputs are invalid.", async function () {
+            const { booking, owner, otherAccount } = await loadFixture(deployBasicFixture);
+
+            await expect(booking.connect(otherAccount).postRoom(-100, 0,  0, 0, 20, "TestURI", 50, false, false)).to.be.revertedWith(
+                "Latitude is not a value between -90 and 90."
+              );
+            
+            
+
+        });
+
+        it("Latitude/Longitude conversion test.", async function () {
+            const { booking, owner, otherAccount } = await loadFixture(deployBasicFixture);
+
+             expect(await booking.convertLatLongToString(50,123)).to.equal("50,123");
+             expect(await booking.convertLatLongToString(-50,45678901234567)).to.equal("-50,45678901234567");
+            
+            
+
+        });
+        
 
     });
 
