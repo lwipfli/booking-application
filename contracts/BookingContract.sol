@@ -39,6 +39,9 @@ contract BookingContract {
         // Check if it is possible to create a new room.
         
         require((-90 <= latitude)&&(latitude<=90), "Latitude is not a value between -90 and 90.");
+        require((0<=latitudeDecimals)&&(latitudeDecimals<=999999999999999), "Latitude precision is not of valid length. Only 15 decimal points are supported.");
+        require((-180 <= longitude)&&(longitude<=180), "Longitude is not a value between -180 and 180.");
+        require((0<=longitudeDecimals)&&(longitudeDecimals<=999999999999999), "Longitude precision is not of valid length. Only 15 decimal points are supported.");
 
         uint idx;
         string memory amenities;
@@ -56,12 +59,56 @@ contract BookingContract {
     function convertLatLongToString (int value, uint decimals) public view returns (string memory){
         string memory prefix = "";
         int val = value;
+        string memory decimalPadding = "";
+
         if(val<0){
             val = val * (-1);
             prefix = "-";
         }
 
-        return string(abi.encodePacked(prefix,Strings.toString(uint(val)),",",Strings.toString(uint(decimals))));
+        if((0<decimals)&&(decimals<10)){
+            decimalPadding = "00000000000000";
+        }
+        else if(decimals<100){
+            decimalPadding = "0000000000000";
+        }
+        else if(decimals<1000){
+            decimalPadding = "000000000000";
+        }
+        else if(decimals<10000){
+            decimalPadding = "00000000000";
+        }
+        else if(decimals<100000){
+            decimalPadding = "0000000000";
+        }
+        else if(decimals<1000000){
+            decimalPadding = "000000000";
+        }
+        else if(decimals<10000000){
+            decimalPadding = "00000000";
+        }
+        else if(decimals<100000000){
+            decimalPadding = "0000000";
+        }
+        else if(decimals<1000000000){
+            decimalPadding = "000000";
+        }
+        else if(decimals<10000000000){
+            decimalPadding = "00000";
+        }
+        else if(decimals<100000000000){
+            decimalPadding = "0000";
+        }
+        else if(decimals<1000000000000){
+            decimalPadding = "000";
+        }
+        else if(decimals<10000000000000){
+            decimalPadding = "00";
+        }
+        else if(decimals<100000000000000){
+            decimalPadding = "0";
+        }
+        return string(abi.encodePacked(prefix,Strings.toString(uint(val)),".",decimalPadding,Strings.toString(uint(decimals))));
     }
 
     //function findRooms(int latitude, uint latitudeDecimals,int longitude, uint longitudeDecimals) public view returns ( uint[] memory indexList) {

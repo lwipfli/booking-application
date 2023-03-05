@@ -9,6 +9,7 @@ struct Room {
 
     address owner;
     //bytes32 id;
+    // Maximum precision for decimals should be 15.
     int latitudeInteger;
     uint latitudeDecimals;
     int longitude;

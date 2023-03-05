@@ -58,16 +58,31 @@ describe("BookingContract", function(){
             await expect(booking.connect(otherAccount).postRoom(-100, 0,  0, 0, 20, "TestURI", 50, false, false)).to.be.revertedWith(
                 "Latitude is not a value between -90 and 90."
               );
+              await expect(booking.connect(otherAccount).postRoom(100, 0,  0, 0, 20, "TestURI", 50, false, false)).to.be.revertedWith(
+                "Latitude is not a value between -90 and 90."
+              );
             
-            
+              await expect(booking.connect(otherAccount).postRoom(5, 0,  -200, 0, 20, "TestURI", 50, false, false)).to.be.revertedWith(
+                "Longitude is not a value between -180 and 180."
+              );
+              await expect(booking.connect(otherAccount).postRoom(5, 0,  500, 0, 20, "TestURI", 50, false, false)).to.be.revertedWith(
+                "Longitude is not a value between -180 and 180."
+              );
+
+              await expect(booking.connect(otherAccount).postRoom(5, 1111111111111111,  90, 0, 20, "TestURI", 50, false, false)).to.be.revertedWith(
+                "Latitude precision is not of valid length. Only 15 decimal points are supported."
+              );
+              await expect(booking.connect(otherAccount).postRoom(5, 0,  90, 1111111111111111, 20, "TestURI", 50, false, false)).to.be.revertedWith(
+                "Longitude precision is not of valid length. Only 15 decimal points are supported."
+              );
 
         });
 
         it("Latitude/Longitude conversion test.", async function () {
             const { booking, owner, otherAccount } = await loadFixture(deployBasicFixture);
 
-             expect(await booking.convertLatLongToString(50,123)).to.equal("50,123");
-             expect(await booking.convertLatLongToString(-50,45678901234567)).to.equal("-50,45678901234567");
+             expect(await booking.convertLatLongToString(50,123)).to.equal("50.000000000000123");
+             expect(await booking.convertLatLongToString(-50,45678901234567)).to.equal("-50.045678901234567");
             
             
 
