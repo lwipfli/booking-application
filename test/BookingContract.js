@@ -31,13 +31,24 @@ describe("BookingContract", function(){
                 
                 expect((await booking.getRoomsByOwner(otherAccount.address)).length).to.equal(0);
 
-                await booking.connect(otherAccount).postRoom(50, 0,  0, 0, 20, "TestURI", 50, false, false);
+                //(uint indexed _index, address indexed owner, uint pricePerDay,int latitude, uint latitudeDecimals,int longitude, uint longitudeDecimals, string amenities, string uri)
+                await expect(booking.connect(otherAccount).postRoom(50, 0,  0, 0, 20, "TestURI", 50, false, false)).to.emit(booking, "RoomPosted")
+                .withArgs(
+                    0,
+                    otherAccount.address,
+                    20,
+                    50,
+                    0, 
+                    0, 
+                    0,
+                    "None",
+                    "TestURI"
+                    );
                 
                 expect(await booking.getNumberOfRooms()).to.equal(1);
                 
                 expect((await booking.getRoomsByOwner(otherAccount.address)).length).to.equal(1);
 
-                //expect(booking.getRoomsByOwner(otherAccount.address).length).to.equal(0);
         });
 
     });

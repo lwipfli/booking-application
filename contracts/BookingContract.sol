@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 contract BookingContract {
 
     // Events
-    event RoomPosted(uint indexed _index, address indexed owner,uint pricePerDay,int latitude, uint latitudeDecimals,int longitude, uint longitudeDecimals, string amenities, string uri);
+    event RoomPosted(uint indexed roomIndex, address indexed owner, uint pricePerDay,int latitude, uint latitudeDecimals,int longitude, uint longitudeDecimals, string amenities, string uri);
 
     address public owner;
 
@@ -43,7 +43,7 @@ contract BookingContract {
         (idx,amenities) = createRoom(latitude, latitudeDecimals,longitude, longitudeDecimals, pricePerDay,uri, searchRadius, adaptPrice, searchSurroundings);
         // Add unique ID to room.
         addRoomIndex(msg.sender,idx);
-        emit RoomPosted(idx,msg.sender,pricePerDay, latitude, latitudeDecimals, longitude,longitudeDecimals, uri, amenities);
+        emit RoomPosted(idx,msg.sender,pricePerDay, latitude, latitudeDecimals, longitude,longitudeDecimals,  amenities,uri);
         
     }
 
