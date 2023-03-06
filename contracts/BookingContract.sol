@@ -14,6 +14,8 @@ contract BookingContract {
 
     mapping(address => uint[]) public roomsCreatedByOwners;
 
+    mapping (address => uint) public pendingWithdrawals;
+
     /**
      * Contract initialization.
      */
@@ -142,4 +144,37 @@ contract BookingContract {
         return (idx, amenities);
     }
 
+    function bookRoom(uint roomIndex, uint timestap, uint numberOfDays) public payable {
+        Room storage room = rooms[roomIndex];
+        require(room.bookable,"Room is not bookable at the current time.");
+        //TODO
+
+    }
+
+    function addBooking(uint roomIndex, address booker, uint startTime, uint endTime) internal {
+        Room storage room = rooms[roomIndex];
+        uint bookingIdx = room.bookings.length;
+        room.bookings.push();
+        Booking storage booking = room.bookings[bookingIdx];
+        booking.booker=booker;
+        booking.startTime=startTime;
+        booking.endTime=endTime;
+        booking.checkedIn=false;
+    }
+
+    function overlapsCurrentBookings(uint roomIndex, uint startTimestamp, uint endTimestamp ) internal view returns (bool) {
+        Room storage room = rooms[roomIndex];
+        for(uint i = 0; i < room.bookings.length; i++){
+            if((room.bookings[i].startTime<=endTimestamp)&&(room.bookings[i].endTime>=startTimestamp)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function withdraw() external {
+        uint amount = pendingWithdrawals[msg.sender];
+        pendingWithdrawals[msg.sender] = 0;
+        payable(msg.sender).transfer(amount);
+    }
 }

@@ -20,17 +20,18 @@ struct Room {
     string uri;
     string amenities;
 
-    mapping(uint => Booking) bookings;
+    Booking[] bookings;
     uint numberOfBookings;
 }
 
 struct Booking {
     address booker;
     bool checkedIn;
-
+    uint depot;
     /**
      * Timestamp in unix values
      */
-    uint StartTime;
-    uint EndTime;
+    uint startTime;
+    uint endTime;
+
 }
