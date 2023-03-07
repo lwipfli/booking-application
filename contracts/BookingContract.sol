@@ -7,6 +7,7 @@ contract BookingContract {
 
     // Events
     event RoomPosted(uint indexed roomIndex, address indexed owner, uint pricePerDay,int latitude, uint latitudeDecimals,int longitude, uint longitudeDecimals, string amenities, string uri);
+    event RoomUpdated(uint indexed roomIndex, uint pricePerDay,uint searchRadius, string amenities, string uri);
 
     address public owner;
 
@@ -50,7 +51,10 @@ contract BookingContract {
         (idx,amenities) = createRoom(latitude, latitudeDecimals,longitude, longitudeDecimals, pricePerDay,uri, searchRadius, adaptPrice, searchSurroundings);
         // Add unique ID to room.
         addRoomIndex(msg.sender,idx);
-        emit RoomPosted(idx,msg.sender,pricePerDay, latitude, latitudeDecimals, longitude,longitudeDecimals,  amenities,uri);
+        //TODO Adapt price
+
+        // TODO Search surrounding
+        emit RoomPosted(idx,msg.sender,pricePerDay, latitude, latitudeDecimals, longitude,longitudeDecimals, amenities,uri);
         
     }
 
@@ -113,9 +117,6 @@ contract BookingContract {
         return string(abi.encodePacked(prefix,Strings.toString(uint(val)),".",decimalPadding,Strings.toString(uint(decimals))));
     }
 
-    //function findRooms(int latitude, uint latitudeDecimals,int longitude, uint longitudeDecimals) public view returns ( uint[] memory indexList) {
-
-    //}
 
     function createRoom(int latitude, uint latitudeDecimals,int longitude, uint longitudeDecimals, uint pricePerDay, string calldata uri, uint searchRadius, bool adaptPrice, bool searchSurroundings) internal returns (uint, string memory){
         // Room posting requires workaround due to structs using structs and mapping.
@@ -128,7 +129,6 @@ contract BookingContract {
         //uint roomsCreated = roomsCreatedByOwners[msg.sender].length -1;
         //bytes32 newId = keccak256(abi.encodePacked(msg.sender,roomsCreated));
 
-        room.numberOfBookings=0;
         room.bookable=true;
         room.uri = uri;
         room.searchRadius = searchRadius;
@@ -176,5 +176,25 @@ contract BookingContract {
         uint amount = pendingWithdrawals[msg.sender];
         pendingWithdrawals[msg.sender] = 0;
         payable(msg.sender).transfer(amount);
+    }
+
+    function updateRoom(uint roomIndex,uint pricePerDay, string calldata uri, uint searchRadius, bool adaptPrice, bool searchSurroundings) public {
+        require((rooms.length>roomIndex)&&(roomIndex>=0), "Room index does not exist.");
+        Room storage room = rooms[roomIndex];
+        require(room.owner==msg.sender,"Owner is different from one updating.");
+        room.pricePerDay=pricePerDay;
+        room.uri=uri;
+        room.searchRadius=searchRadius;
+        
+        //TODO Adapt price
+
+        //TODO Search surrounding
+        emit RoomUpdated(roomIndex, pricePerDay,searchRadius, room.amenities, uri);
+
+    }
+
+    function getRoom(uint roomIndex) view public returns (Room memory room){
+        require(rooms.length>=roomIndex, "Room index does not exist.");
+        return rooms[roomIndex];
     }
 }

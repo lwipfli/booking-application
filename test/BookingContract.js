@@ -76,6 +76,8 @@ describe("BookingContract", function(){
                 "Longitude precision is not of valid length. Only 15 decimal points are supported."
               );
 
+              //TODO
+
         });
 
         it("Latitude/Longitude conversion test.", async function () {
@@ -83,10 +85,63 @@ describe("BookingContract", function(){
 
              expect(await booking.convertLatLongToString(50,123)).to.equal("50.000000000000123");
              expect(await booking.convertLatLongToString(-50,45678901234567)).to.equal("-50.045678901234567");
-            
-            
-
         });
+
+        it("Room update test.", async function () {
+          const { booking, owner, otherAccount } = await loadFixture(deployBasicFixture);
+
+          await expect(booking.connect(otherAccount).postRoom(50, 0,  0, 0, 20, "TestURI", 50, false, false)).to.emit(booking, "RoomPosted")
+                .withArgs(
+                    0,
+                    otherAccount.address,
+                    20,
+                    50,
+                    0, 
+                    0, 
+                    0,
+                    "None",
+                    "TestURI"
+               );
+          var room = await booking.getRoom(0);
+          expect(room.latitudeInteger).to.equal(50);
+          expect(room.latitudeDecimals).to.equal(0);
+          expect(room.longitude).to.equal(0);
+          expect(room.longitudeDecimals).to.equal(0);
+          expect(room.uri).to.equal("TestURI");
+          expect(room.pricePerDay).to.equal(20);
+          expect(room.amenities).to.equal("None");
+          expect(room.bookable).to.equal(true);
+          expect(room.searchRadius).to.equal(50);
+
+          //RoomUpdated(uint indexed roomIndex, uint pricePerDay,uint searchRadius, string amenities, string uri);
+          await expect(booking.connect(otherAccount).updateRoom(0, 25, "NewURI", 60, false, false)).to.emit(booking, "RoomUpdated")
+          .withArgs(
+            0,
+            25,
+            60, 
+            "None",
+            "NewURI", 
+         );
+         room = await booking.getRoom(0);
+          expect(room.latitudeInteger).to.equal(50);
+          expect(room.latitudeDecimals).to.equal(0);
+          expect(room.longitude).to.equal(0);
+          expect(room.longitudeDecimals).to.equal(0);
+          expect(room.uri).to.equal("NewURI");
+          expect(room.pricePerDay).to.equal(25);
+          expect(room.amenities).to.equal("None");
+          expect(room.bookable).to.equal(true);
+          expect(room.searchRadius).to.equal(60);
+
+          await expect(booking.connect(owner).updateRoom(0, 25, "NewURI", 60, false, false)).to.be.revertedWith(
+            "Owner is different from one updating."
+          );
+
+          await expect(booking.connect(otherAccount).updateRoom(1, 25, "NewURI", 60, false, false)).to.be.revertedWith(
+            "Room index does not exist."
+          );
+      });
+      
         
 
     });

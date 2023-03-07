@@ -21,7 +21,6 @@ struct Room {
     string amenities;
 
     Booking[] bookings;
-    uint numberOfBookings;
 }
 
 struct Booking {
