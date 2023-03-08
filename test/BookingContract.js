@@ -7,6 +7,7 @@ describe("BookingContract", function () {
   async function deployBasicFixture() {
     const [owner, otherAccount] = await ethers.getSigners();
     const BookingContract = await ethers.getContractFactory("BookingContract");
+    provider = ethers.provider;
     const booking = await BookingContract.deploy();
     await booking.deployed();
     return { booking, owner, otherAccount };
@@ -172,10 +173,20 @@ describe("BookingContract", function () {
       await expect(
         booking
           .connect(otherAccount)
-          .postRoom(50, 0, 0, 0, 20, "TestURI", 50, false, false)
+          .postRoom(50, 0, 0, 0, 4000000000000000, "TestURI", 50, false, false)
       )
         .to.emit(booking, "RoomPosted")
-        .withArgs(0, otherAccount.address, 20, 50, 0, 0, 0, "None", "TestURI");
+        .withArgs(
+          0,
+          otherAccount.address,
+          4000000000000000,
+          50,
+          0,
+          0,
+          0,
+          "None",
+          "TestURI"
+        );
       await expect(booking.connect(otherAccount).setRoomBookale(0, false))
         .to.emit(booking, "RoomBookabeUpdate")
         .withArgs(0, false);
@@ -198,20 +209,74 @@ describe("BookingContract", function () {
       expect(await booking.connect(otherAccount).checkBalance()).to.equal(0);
 
       await expect(
-        booking.connect(otherAccount).bookRoom(0, bookingDateTimestamp, 2, {
-          value: ethers.utils.parseUnits("40.0", 0), // 40 gwei
+        booking.connect(owner).bookRoom(0, bookingDateTimestamp, 2, {
+          value: ethers.utils.parseUnits("8.0", 15), // 8000000000000000 gwei
         })
       )
         .to.emit(booking, "RoomBooked")
         .withArgs(
           0,
-          otherAccount.address,
+          owner.address,
           bookingDateTimestamp,
           bookingDateTimestamp + 2 * 86400
         );
-      expect(await booking.connect(otherAccount).checkBalance()).to.equal(40);
 
-      //TODO + Change address
+      var preBalance = await provider.getBalance(otherAccount.address);
+      console.log("Balance before withdrawing: " + preBalance.toString());
+      expect(await booking.connect(otherAccount).checkBalance()).to.equal(
+        8000000000000000
+      );
+      await booking.connect(otherAccount).withdraw();
+      var postBalance = await provider.getBalance(otherAccount.address);
+      expect(await booking.connect(otherAccount).checkBalance()).to.equal(0);
+      console.log("Balance after  withdrawing: " + postBalance.toString());
+
+      // OtherAccount should have gotten payment from the contract
+      expect(preBalance < postBalance);
+
+      // Booking should be there
+      var bookings = await booking.getBookings(0);
+      expect(bookings.length).to.equal(1);
+      expect(bookings[0].booker).to.equal(owner.address);
+      expect(bookings[0].startTime).to.equal(bookingDateTimestamp);
+      expect(bookings[0].endTime).to.equal(bookingDateTimestamp + 2 * 86400);
+      expect(bookings[0].checkedIn).to.equal(false);
+
+      // Overlapping booking should not be possible
+      // Starting before and ending before
+      await expect(
+        booking.connect(owner).bookRoom(0, bookingDateTimestamp - 2, 2, {
+          value: ethers.utils.parseUnits("8.0", 15), // 8000000000000000 gwei
+        })
+      ).to.be.revertedWith("Room alredy booked at the time.");
+
+      // Starting after and ending before
+      await expect(
+        booking.connect(owner).bookRoom(0, bookingDateTimestamp + 2, 1, {
+          value: ethers.utils.parseUnits("4.0", 15), // 8000000000000000 gwei
+        })
+      ).to.be.revertedWith("Room alredy booked at the time.");
+
+      // Starting after and ending after
+      await expect(
+        booking.connect(owner).bookRoom(0, bookingDateTimestamp + 2, 2, {
+          value: ethers.utils.parseUnits("8.0", 15), // 8000000000000000 gwei
+        })
+      ).to.be.revertedWith("Room alredy booked at the time.");
+
+      //Starting before and ending after
+      await expect(
+        booking.connect(owner).bookRoom(0, bookingDateTimestamp - 2, 3, {
+          value: ethers.utils.parseUnits("12.0", 15), // 8000000000000000 gwei
+        })
+      ).to.be.revertedWith("Room alredy booked at the time.");
+
+      // The same time
+      await expect(
+        booking.connect(owner).bookRoom(0, bookingDateTimestamp, 2, {
+          value: ethers.utils.parseUnits("8.0", 15), // 8000000000000000 gwei
+        })
+      ).to.be.revertedWith("Room alredy booked at the time.");
     });
 
     it("Change Room bookable.", async function () {

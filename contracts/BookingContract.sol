@@ -260,6 +260,16 @@ contract BookingContract {
         booking.checkedIn = false;
     }
 
+    function getBookings(
+        uint roomIndex
+    ) public view returns (Booking[] memory) {
+        require(
+            (rooms.length > roomIndex) && (roomIndex >= 0),
+            "Room index does not exist."
+        );
+        return rooms[roomIndex].bookings;
+    }
+
     function overlapsCurrentBookings(
         uint roomIndex,
         uint startTimestamp,
