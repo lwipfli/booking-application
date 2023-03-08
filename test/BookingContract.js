@@ -253,7 +253,7 @@ describe("BookingContract", function () {
       // Starting after and ending before
       await expect(
         booking.connect(owner).bookRoom(0, bookingDateTimestamp + 2, 1, {
-          value: ethers.utils.parseUnits("4.0", 15), // 8000000000000000 gwei
+          value: ethers.utils.parseUnits("4.0", 15), // 4000000000000000 gwei
         })
       ).to.be.revertedWith("Room alredy booked at the time.");
 
@@ -267,7 +267,7 @@ describe("BookingContract", function () {
       //Starting before and ending after
       await expect(
         booking.connect(owner).bookRoom(0, bookingDateTimestamp - 2, 3, {
-          value: ethers.utils.parseUnits("12.0", 15), // 8000000000000000 gwei
+          value: ethers.utils.parseUnits("12.0", 15), // 12000000000000000 gwei
         })
       ).to.be.revertedWith("Room alredy booked at the time.");
 
@@ -284,10 +284,12 @@ describe("BookingContract", function () {
         deployBasicFixture
       );
 
+      // Cannot change room bookable if no room exists.
       await expect(
         booking.connect(otherAccount).setRoomBookale(0, false)
       ).to.be.revertedWith("Room index does not exist.");
 
+      // Post room
       await expect(
         booking
           .connect(otherAccount)
@@ -297,10 +299,13 @@ describe("BookingContract", function () {
         .withArgs(0, otherAccount.address, 20, 50, 0, 0, 0, "None", "TestURI");
       var room = await booking.getRoom(0);
       expect(room.bookable).to.equal(true);
+
+      //Cannot change room bookable if room does not belong to invoker.
       await expect(
         booking.connect(owner).setRoomBookale(0, false)
       ).to.be.revertedWith("Owner is different from one updating.");
 
+      // Change room bookable successfully.
       await expect(booking.connect(otherAccount).setRoomBookale(0, false))
         .to.emit(booking, "RoomBookabeUpdate")
         .withArgs(0, false);

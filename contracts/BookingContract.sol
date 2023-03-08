@@ -31,6 +31,9 @@ contract BookingContract {
         uint endTime
     );
 
+    // 0.005 so it is at most 0,555 kilometers in either longitude or latitude
+    uint public constant SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION = 50000000000;
+
     address public owner;
 
     Room[] public rooms;
@@ -347,5 +350,40 @@ contract BookingContract {
     function getRoom(uint roomIndex) public view returns (Room memory room) {
         require(rooms.length >= roomIndex, "Room index does not exist.");
         return rooms[roomIndex];
+    }
+
+    function averagePriceToSurrounding(
+        int startingLatitude,
+        uint startingdecimals,
+        int startingLongitude,
+        uint startingLongitudeDecimals,
+        uint originalPrice
+    ) public view returns (uint averagedPrice) {
+        //TODO
+        /*
+        uint numberOfRooms = 1;
+        uint price = originalPrice;
+        for(uint i = 0;i<rooms.length;i++){
+            if(){
+
+            }
+        }
+        */
+    }
+
+    function max(uint a, uint b) external pure returns (uint) {
+        return a >= b ? a : b;
+    }
+
+    function max(int a, int b) external pure returns (int) {
+        return a >= b ? a : b;
+    }
+
+    function min(uint a, uint b) external pure returns (uint) {
+        return a <= b ? a : b;
+    }
+
+    function min(int a, int b) external pure returns (int) {
+        return a <= b ? a : b;
     }
 }
