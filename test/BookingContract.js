@@ -31,7 +31,6 @@ describe("BookingContract", function(){
                 
                 expect((await booking.getRoomsByOwner(otherAccount.address)).length).to.equal(0);
 
-                //(uint indexed _index, address indexed owner, uint pricePerDay,int latitude, uint latitudeDecimals,int longitude, uint longitudeDecimals, string amenities, string uri)
                 await expect(booking.connect(otherAccount).postRoom(50, 0,  0, 0, 20, "TestURI", 50, false, false)).to.emit(booking, "RoomPosted")
                 .withArgs(
                     0,
@@ -75,9 +74,6 @@ describe("BookingContract", function(){
               await expect(booking.connect(otherAccount).postRoom(5, 0,  90, 1111111111111111, 20, "TestURI", 50, false, false)).to.be.revertedWith(
                 "Longitude precision is not of valid length. Only 15 decimal points are supported."
               );
-
-              //TODO
-
         });
 
         it("Latitude/Longitude conversion test.", async function () {
@@ -113,7 +109,6 @@ describe("BookingContract", function(){
           expect(room.bookable).to.equal(true);
           expect(room.searchRadius).to.equal(50);
 
-          //RoomUpdated(uint indexed roomIndex, uint pricePerDay,uint searchRadius, string amenities, string uri);
           await expect(booking.connect(otherAccount).updateRoom(0, 25, "NewURI", 60, false, false)).to.emit(booking, "RoomUpdated")
           .withArgs(
             0,
@@ -140,10 +135,114 @@ describe("BookingContract", function(){
           await expect(booking.connect(otherAccount).updateRoom(1, 25, "NewURI", 60, false, false)).to.be.revertedWith(
             "Room index does not exist."
           );
+
       });
       
+      it("Room booking.", async function () {
+        const { booking, owner, otherAccount } = await loadFixture(deployBasicFixture);
+
+        const bookingDateTimestamp = new Date('09/19/2022 10:58:13').getTime();
+
+        await expect(booking.connect(otherAccount).bookRoom(0,bookingDateTimestamp,1)).to.be.revertedWith(
+          "Room index does not exist."
+        );
+
+        await expect(booking.connect(otherAccount).postRoom(50, 0,  0, 0, 20, "TestURI", 50, false, false)).to.emit(booking, "RoomPosted")
+                .withArgs(
+                    0,
+                    otherAccount.address,
+                    20,
+                    50,
+                    0, 
+                    0, 
+                    0,
+                    "None",
+                    "TestURI"
+        );
+        await expect(booking.connect(otherAccount).setRoomBookale(0,false)).to.emit(booking, "RoomBookabeUpdate")
+                    .withArgs(
+                        0,
+                        false
+        );
+
+        await expect(booking.connect(otherAccount).bookRoom(0,bookingDateTimestamp,1)).to.be.revertedWith(
+                      "Room is not bookable at the current time."
+        );
+        await expect(booking.connect(otherAccount).setRoomBookale(0,true)).to.emit(booking, "RoomBookabeUpdate")
+                    .withArgs(
+                        0,
+                        true
+        );
+        await expect(booking.connect(otherAccount).bookRoom(0,bookingDateTimestamp,0)).to.be.revertedWith(
+          "Cannot book room for zero days."
+        );
+        await expect(booking.connect(otherAccount).bookRoom(0,bookingDateTimestamp,1, {
+          value: ethers.utils.parseUnits("1.0", 0) // 1 gwei
+        })).to.be.revertedWith(
+          "Payment is not enough for room."
+        );
+        
+        await expect(booking.connect(otherAccount).checkBalance()).to.equal(0); //???
+
+        await expect(booking.connect(otherAccount).bookRoom(0,bookingDateTimestamp,2, {
+          value: ethers.utils.parseUnits("40.0", 0) // 40 gwei
+        })).to.emit(booking, "RoomBooked")
+        .withArgs(
+            0,
+            otherAccount.address,
+            bookingDateTimestamp,
+            (bookingDateTimestamp+ (2* 86400))
+        );
+        expect( await booking.connect(otherAccount).checkBalance()).to.equal(40); //???
+
+        //TODO + CHange address
         
 
-    });
+      });
 
-})
+      it("Change Room bookable.", async function () {
+        const { booking, owner, otherAccount } = await loadFixture(deployBasicFixture);
+
+        await expect(booking.connect(otherAccount).setRoomBookale(0,false)).to.be.revertedWith(
+          "Room index does not exist."
+        );
+
+        
+        await expect(booking.connect(otherAccount).postRoom(50, 0,  0, 0, 20, "TestURI", 50, false, false)).to.emit(booking, "RoomPosted")
+                .withArgs(
+                    0,
+                    otherAccount.address,
+                    20,
+                    50,
+                    0, 
+                    0, 
+                    0,
+                    "None",
+                    "TestURI"
+                    );
+        var room = await booking.getRoom(0);
+        expect(room.bookable).to.equal(true);
+        await expect(booking.connect(owner).setRoomBookale(0,false)).to.be.revertedWith(
+          "Owner is different from one updating."
+        );
+
+        await expect(booking.connect(otherAccount).setRoomBookale(0,false)).to.emit(booking, "RoomBookabeUpdate")
+                .withArgs(
+                    0,
+                    false
+                    );
+
+        room = await booking.getRoom(0);
+        expect(room.bookable).to.equal(false);
+        await expect(booking.connect(otherAccount).setRoomBookale(0,true)).to.emit(booking, "RoomBookabeUpdate")
+        .withArgs(
+            0,
+            true
+        );
+        room = await booking.getRoom(0);
+        expect(room.bookable).to.equal(true);
+
+      });
+
+    })
+});

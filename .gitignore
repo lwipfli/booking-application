@@ -21,3 +21,5 @@ typechain-types
 cache
 artifacts
 
+package-lock.json
+package.json

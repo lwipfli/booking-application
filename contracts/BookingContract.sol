@@ -8,6 +8,8 @@ contract BookingContract {
     // Events
     event RoomPosted(uint indexed roomIndex, address indexed owner, uint pricePerDay,int latitude, uint latitudeDecimals,int longitude, uint longitudeDecimals, string amenities, string uri);
     event RoomUpdated(uint indexed roomIndex, uint pricePerDay,uint searchRadius, string amenities, string uri);
+    event RoomBookabeUpdate(uint indexed roomIndex, bool bookable);
+    event RoomBooked(uint indexed roomIndex, address indexed booker, uint startTime, uint endTime);
 
     address public owner;
 
@@ -29,12 +31,6 @@ contract BookingContract {
     }
 
     function getRoomsByOwner(address ownerOfRoom) public view returns ( uint[] memory roomList){
-    /*
-    if(roomsCreatedByOwners[ownerOfRoom].length==0){
-        uint[] memory a = new uint[](0);
-        return a;
-    }*/
-
         return roomsCreatedByOwners[ownerOfRoom];
     }
 
@@ -45,6 +41,8 @@ contract BookingContract {
         require((0<=latitudeDecimals)&&(latitudeDecimals<=999999999999999), "Latitude precision is not of valid length. Only 15 decimal points are supported.");
         require((-180 <= longitude)&&(longitude<=180), "Longitude is not a value between -180 and 180.");
         require((0<=longitudeDecimals)&&(longitudeDecimals<=999999999999999), "Longitude precision is not of valid length. Only 15 decimal points are supported.");
+        require(pricePerDay>=0, "Price should not be negative.");
+
 
         uint idx;
         string memory amenities;
@@ -129,6 +127,10 @@ contract BookingContract {
         //uint roomsCreated = roomsCreatedByOwners[msg.sender].length -1;
         //bytes32 newId = keccak256(abi.encodePacked(msg.sender,roomsCreated));
 
+        //TODO Hanlde price adaption
+
+        //TODO handle oracle call
+
         room.bookable=true;
         room.uri = uri;
         room.searchRadius = searchRadius;
@@ -144,11 +146,20 @@ contract BookingContract {
         return (idx, amenities);
     }
 
-    function bookRoom(uint roomIndex, uint timestap, uint numberOfDays) public payable {
+    function bookRoom(uint roomIndex, uint timestamp, uint numberOfDays) public payable {
+        require((rooms.length>roomIndex)&&(roomIndex>=0), "Room index does not exist.");
         Room storage room = rooms[roomIndex];
         require(room.bookable,"Room is not bookable at the current time.");
-        //TODO
-
+        require(numberOfDays>0,"Cannot book room for zero days.");
+        // TODO TEST FROM HERE
+        require(msg.value >= (room.pricePerDay*numberOfDays),"Payment is not enough for room.");
+        
+        uint endTime = timestamp + (numberOfDays* 86400);
+        require(!(overlapsCurrentBookings(roomIndex, timestamp, endTime)),"Room alredy booked at the time." );
+        addBooking(roomIndex, msg.sender, timestamp, endTime);
+        emit RoomBooked(roomIndex, msg.sender, timestamp, endTime);
+        // Handle payment.
+        pendingWithdrawals[room.owner]+=msg.value;
     }
 
     function addBooking(uint roomIndex, address booker, uint startTime, uint endTime) internal {
@@ -178,6 +189,10 @@ contract BookingContract {
         payable(msg.sender).transfer(amount);
     }
 
+    function checkBalance() external returns (uint) {
+        return  pendingWithdrawals[msg.sender];
+    }
+
     function updateRoom(uint roomIndex,uint pricePerDay, string calldata uri, uint searchRadius, bool adaptPrice, bool searchSurroundings) public {
         require((rooms.length>roomIndex)&&(roomIndex>=0), "Room index does not exist.");
         Room storage room = rooms[roomIndex];
@@ -191,6 +206,14 @@ contract BookingContract {
         //TODO Search surrounding
         emit RoomUpdated(roomIndex, pricePerDay,searchRadius, room.amenities, uri);
 
+    }
+
+    function setRoomBookale(uint roomIndex, bool bookable) public {
+        require((rooms.length>roomIndex)&&(roomIndex>=0), "Room index does not exist.");
+        Room storage room = rooms[roomIndex];
+        require(room.owner==msg.sender,"Owner is different from one updating.");
+        room.bookable=bookable;
+        emit RoomBookabeUpdate(roomIndex,bookable);
     }
 
     function getRoom(uint roomIndex) view public returns (Room memory room){
