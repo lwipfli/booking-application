@@ -5,23 +5,35 @@ const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
 describe("BookingContract", function () {
   async function deployBasicFixture() {
+    const bookingDateTimestamp = new Date("09/19/2022 10:58:13").getTime();
+
     const [owner, otherAccount] = await ethers.getSigners();
     const BookingContract = await ethers.getContractFactory("BookingContract");
     provider = ethers.provider;
     const booking = await BookingContract.deploy();
     await booking.deployed();
-    return { booking, owner, otherAccount };
+    return { booking, owner, otherAccount, bookingDateTimestamp };
   }
 
-  describe("Base functionality", function () {
+  async function OneRoomPostedFixture() {
+    const { booking, owner, otherAccount, bookingDateTimestamp } =
+      await loadFixture(deployBasicFixture);
+
+    await booking
+      .connect(otherAccount)
+      .postRoom(50, 0, 0, 0, 20, "TestURI", 50, false, false);
+    return { booking, owner, otherAccount, bookingDateTimestamp };
+  }
+
+  describe("Deployment", function () {
     it("Should set the right owner", async function () {
-      const { booking, owner, otherAccount } = await loadFixture(
-        deployBasicFixture
-      );
+      const { booking, owner } = await loadFixture(deployBasicFixture);
 
       expect(await booking.owner()).to.equal(owner.address);
     });
+  });
 
+  describe("Room posting", function () {
     it("Room posting successful", async function () {
       const { booking, owner, otherAccount } = await loadFixture(
         deployBasicFixture
@@ -51,10 +63,8 @@ describe("BookingContract", function () {
       );
     });
 
-    it("Room posting should revert if inputs are invalid.", async function () {
-      const { booking, owner, otherAccount } = await loadFixture(
-        deployBasicFixture
-      );
+    it("Should revert if latitude is higher or lower than expeceted.", async function () {
+      const { booking, otherAccount } = await loadFixture(deployBasicFixture);
 
       await expect(
         booking
@@ -66,6 +76,10 @@ describe("BookingContract", function () {
           .connect(otherAccount)
           .postRoom(100, 0, 0, 0, 20, "TestURI", 50, false, false)
       ).to.be.revertedWith("Latitude is not a value between -90 and 90.");
+    });
+
+    it("Should revert if longitude is higher or lower than expeceted.", async function () {
+      const { booking, otherAccount } = await loadFixture(deployBasicFixture);
 
       await expect(
         booking
@@ -77,6 +91,10 @@ describe("BookingContract", function () {
           .connect(otherAccount)
           .postRoom(5, 0, 500, 0, 20, "TestURI", 50, false, false)
       ).to.be.revertedWith("Longitude is not a value between -180 and 180.");
+    });
+
+    it("Shoud revert if latitude- or longitude-decimals are higher than expected.", async function () {
+      const { booking, otherAccount } = await loadFixture(deployBasicFixture);
 
       await expect(
         booking
@@ -93,11 +111,11 @@ describe("BookingContract", function () {
         "Longitude precision is not of valid length. Only 15 decimal points are supported."
       );
     });
+  });
 
-    it("Latitude/Longitude conversion test.", async function () {
-      const { booking, owner, otherAccount } = await loadFixture(
-        deployBasicFixture
-      );
+  describe("Helper functions", function () {
+    it("Latitude/Longitude string conversion test.", async function () {
+      const { booking } = await loadFixture(deployBasicFixture);
 
       expect(await booking.convertLatLongToString(50, 123)).to.equal(
         "50.000000000000123"
@@ -106,19 +124,12 @@ describe("BookingContract", function () {
         await booking.convertLatLongToString(-50, 45678901234567)
       ).to.equal("-50.045678901234567");
     });
+  });
 
+  describe("Room update", function () {
     it("Room update test.", async function () {
-      const { booking, owner, otherAccount } = await loadFixture(
-        deployBasicFixture
-      );
+      const { booking, otherAccount } = await loadFixture(OneRoomPostedFixture);
 
-      await expect(
-        booking
-          .connect(otherAccount)
-          .postRoom(50, 0, 0, 0, 20, "TestURI", 50, false, false)
-      )
-        .to.emit(booking, "RoomPosted")
-        .withArgs(0, otherAccount.address, 20, 50, 0, 0, 0, "None", "TestURI");
       var room = await booking.getRoom(0);
       expect(room.latitudeInteger).to.equal(50);
       expect(room.latitudeDecimals).to.equal(0);
@@ -137,6 +148,7 @@ describe("BookingContract", function () {
       )
         .to.emit(booking, "RoomUpdated")
         .withArgs(0, 25, 60, "None", "NewURI");
+
       room = await booking.getRoom(0);
       expect(room.latitudeInteger).to.equal(50);
       expect(room.latitudeDecimals).to.equal(0);
@@ -147,10 +159,18 @@ describe("BookingContract", function () {
       expect(room.amenities).to.equal("None");
       expect(room.bookable).to.equal(true);
       expect(room.searchRadius).to.equal(60);
+    });
+
+    it("Should revert if owner is different for updating a room.", async function () {
+      const { booking, owner } = await loadFixture(OneRoomPostedFixture);
 
       await expect(
         booking.connect(owner).updateRoom(0, 25, "NewURI", 60, false, false)
       ).to.be.revertedWith("Owner is different from one updating.");
+    });
+
+    it("Should revert if room does not exist.", async function () {
+      const { booking, otherAccount } = await loadFixture(OneRoomPostedFixture);
 
       await expect(
         booking
@@ -158,17 +178,23 @@ describe("BookingContract", function () {
           .updateRoom(1, 25, "NewURI", 60, false, false)
       ).to.be.revertedWith("Room index does not exist.");
     });
+  });
 
-    it("Room booking.", async function () {
-      const { booking, owner, otherAccount } = await loadFixture(
+  describe("Room booking.", function () {
+    it("Should revert if there is no room to book with the index.", async function () {
+      const { booking, otherAccount, bookingDateTimestamp } = await loadFixture(
         deployBasicFixture
       );
-
-      const bookingDateTimestamp = new Date("09/19/2022 10:58:13").getTime();
 
       await expect(
         booking.connect(otherAccount).bookRoom(0, bookingDateTimestamp, 1)
       ).to.be.revertedWith("Room index does not exist.");
+    });
+
+    // HERE
+    it("Book room successfully, should increase balance of owner.", async function () {
+      const { booking, owner, otherAccount, bookingDateTimestamp } =
+        await loadFixture(deployBasicFixture);
 
       await expect(
         booking
@@ -187,24 +213,6 @@ describe("BookingContract", function () {
           "None",
           "TestURI"
         );
-      await expect(booking.connect(otherAccount).setRoomBookale(0, false))
-        .to.emit(booking, "RoomBookabeUpdate")
-        .withArgs(0, false);
-
-      await expect(
-        booking.connect(otherAccount).bookRoom(0, bookingDateTimestamp, 1)
-      ).to.be.revertedWith("Room is not bookable at the current time.");
-      await expect(booking.connect(otherAccount).setRoomBookale(0, true))
-        .to.emit(booking, "RoomBookabeUpdate")
-        .withArgs(0, true);
-      await expect(
-        booking.connect(otherAccount).bookRoom(0, bookingDateTimestamp, 0)
-      ).to.be.revertedWith("Cannot book room for zero days.");
-      await expect(
-        booking.connect(otherAccount).bookRoom(0, bookingDateTimestamp, 1, {
-          value: ethers.utils.parseUnits("1.0", 0), // 1 gwei
-        })
-      ).to.be.revertedWith("Payment is not enough for room.");
 
       expect(await booking.connect(otherAccount).checkBalance()).to.equal(0);
 
@@ -222,14 +230,14 @@ describe("BookingContract", function () {
         );
 
       var preBalance = await provider.getBalance(otherAccount.address);
-      console.log("Balance before withdrawing: " + preBalance.toString());
+      //console.log("Balance before withdrawing: " + preBalance.toString());
       expect(await booking.connect(otherAccount).checkBalance()).to.equal(
         8000000000000000
       );
       await booking.connect(otherAccount).withdraw();
       var postBalance = await provider.getBalance(otherAccount.address);
       expect(await booking.connect(otherAccount).checkBalance()).to.equal(0);
-      console.log("Balance after  withdrawing: " + postBalance.toString());
+      //console.log("Balance after  withdrawing: " + postBalance.toString());
 
       // OtherAccount should have gotten payment from the contract
       expect(preBalance < postBalance);
@@ -241,69 +249,123 @@ describe("BookingContract", function () {
       expect(bookings[0].startTime).to.equal(bookingDateTimestamp);
       expect(bookings[0].endTime).to.equal(bookingDateTimestamp + 2 * 86400);
       expect(bookings[0].checkedIn).to.equal(false);
+      expect(bookings[0].depot).to.equal(0);
+    });
 
-      // Overlapping booking should not be possible
+    it("Should revert if room is unbookable.", async function () {
+      const { booking, otherAccount, bookingDateTimestamp } = await loadFixture(
+        OneRoomPostedFixture
+      );
+
+      await expect(booking.connect(otherAccount).setRoomBookale(0, false))
+        .to.emit(booking, "RoomBookabeUpdate")
+        .withArgs(0, false);
+
+      await expect(
+        booking.connect(otherAccount).bookRoom(0, bookingDateTimestamp, 1)
+      ).to.be.revertedWith("Room is not bookable at the current time.");
+    });
+
+    it("Should revert if booking for zero days.", async function () {
+      const { booking, otherAccount, bookingDateTimestamp } = await loadFixture(
+        OneRoomPostedFixture
+      );
+
+      await expect(
+        booking.connect(otherAccount).bookRoom(0, bookingDateTimestamp, 0)
+      ).to.be.revertedWith("Cannot book room for zero days.");
+    });
+
+    it("Should revert booking if payment not enough.", async function () {
+      const { booking, otherAccount, bookingDateTimestamp } = await loadFixture(
+        OneRoomPostedFixture
+      );
+
+      await expect(
+        booking.connect(otherAccount).bookRoom(0, bookingDateTimestamp, 1, {
+          value: ethers.utils.parseUnits("1.0", 0), // 1 gwei
+        })
+      ).to.be.revertedWith("Payment is not enough for room.");
+    });
+
+    it("Should revert overlapping booking.", async function () {
+      const { booking, owner, bookingDateTimestamp } = await loadFixture(
+        OneRoomPostedFixture
+      );
+
+      await expect(
+        booking.connect(owner).bookRoom(0, bookingDateTimestamp, 2, {
+          value: ethers.utils.parseUnits("40.0", 0),
+        })
+      )
+        .to.emit(booking, "RoomBooked")
+        .withArgs(
+          0,
+          owner.address,
+          bookingDateTimestamp,
+          bookingDateTimestamp + 2 * 86400
+        );
+
       // Starting before and ending before
       await expect(
         booking.connect(owner).bookRoom(0, bookingDateTimestamp - 2, 2, {
-          value: ethers.utils.parseUnits("8.0", 15), // 8000000000000000 gwei
+          value: ethers.utils.parseUnits("40.0", 0),
         })
       ).to.be.revertedWith("Room alredy booked at the time.");
 
       // Starting after and ending before
       await expect(
         booking.connect(owner).bookRoom(0, bookingDateTimestamp + 2, 1, {
-          value: ethers.utils.parseUnits("4.0", 15), // 4000000000000000 gwei
+          value: ethers.utils.parseUnits("20.0", 0),
         })
       ).to.be.revertedWith("Room alredy booked at the time.");
 
       // Starting after and ending after
       await expect(
         booking.connect(owner).bookRoom(0, bookingDateTimestamp + 2, 2, {
-          value: ethers.utils.parseUnits("8.0", 15), // 8000000000000000 gwei
+          value: ethers.utils.parseUnits("40.0", 0),
         })
       ).to.be.revertedWith("Room alredy booked at the time.");
 
       //Starting before and ending after
       await expect(
         booking.connect(owner).bookRoom(0, bookingDateTimestamp - 2, 3, {
-          value: ethers.utils.parseUnits("12.0", 15), // 12000000000000000 gwei
+          value: ethers.utils.parseUnits("60.0", 0),
         })
       ).to.be.revertedWith("Room alredy booked at the time.");
 
       // The same time
       await expect(
         booking.connect(owner).bookRoom(0, bookingDateTimestamp, 2, {
-          value: ethers.utils.parseUnits("8.0", 15), // 8000000000000000 gwei
+          value: ethers.utils.parseUnits("40.0", 0),
         })
       ).to.be.revertedWith("Room alredy booked at the time.");
     });
+  });
 
-    it("Change Room bookable.", async function () {
-      const { booking, owner, otherAccount } = await loadFixture(
-        deployBasicFixture
-      );
+  describe("Room bookable change.", function () {
+    it("Should revert if room does not exist.", async function () {
+      const { booking, otherAccount } = await loadFixture(deployBasicFixture);
 
       // Cannot change room bookable if no room exists.
       await expect(
         booking.connect(otherAccount).setRoomBookale(0, false)
       ).to.be.revertedWith("Room index does not exist.");
+    });
 
-      // Post room
-      await expect(
-        booking
-          .connect(otherAccount)
-          .postRoom(50, 0, 0, 0, 20, "TestURI", 50, false, false)
-      )
-        .to.emit(booking, "RoomPosted")
-        .withArgs(0, otherAccount.address, 20, 50, 0, 0, 0, "None", "TestURI");
-      var room = await booking.getRoom(0);
-      expect(room.bookable).to.equal(true);
+    it("Should revert if someone different from owner tries to change bookable.", async function () {
+      const { booking, owner } = await loadFixture(OneRoomPostedFixture);
 
-      //Cannot change room bookable if room does not belong to invoker.
       await expect(
         booking.connect(owner).setRoomBookale(0, false)
       ).to.be.revertedWith("Owner is different from one updating.");
+    });
+
+    it("Change room booking successfully.", async function () {
+      const { booking, otherAccount } = await loadFixture(OneRoomPostedFixture);
+
+      var room = await booking.getRoom(0);
+      expect(room.bookable).to.equal(true);
 
       // Change room bookable successfully.
       await expect(booking.connect(otherAccount).setRoomBookale(0, false))
@@ -318,5 +380,17 @@ describe("BookingContract", function () {
       room = await booking.getRoom(0);
       expect(room.bookable).to.equal(true);
     });
+  });
+
+  describe("Check In functionality", function () {
+    //TODO
+  });
+
+  describe("Price adaption", function () {
+    //TODO
+  });
+
+  describe("Search functionality", function () {
+    //TODO
   });
 });

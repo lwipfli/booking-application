@@ -261,6 +261,7 @@ contract BookingContract {
         booking.startTime = startTime;
         booking.endTime = endTime;
         booking.checkedIn = false;
+        booking.depot = 0;
     }
 
     function getBookings(
@@ -371,19 +372,63 @@ contract BookingContract {
         */
     }
 
-    function max(uint a, uint b) external pure returns (uint) {
+    function checkIn(uint roomIndex) public payable {
+        require(
+            (rooms.length > roomIndex) && (roomIndex >= 0),
+            "Room index does not exist."
+        );
+        //TODO
+    }
+
+    function cleanStaleBookings(Room memory room) internal {
+        //room.bookings
+        //TODO
+    }
+
+    function rommHasOccupant(uint roomIndex) internal view returns (bool) {
+        require(
+            (rooms.length > roomIndex) && (roomIndex >= 0),
+            "Room index does not exist."
+        );
+        Room memory room = rooms[roomIndex];
+        for (uint i = 0; i < room.bookings.length; i++) {
+            if (room.bookings[i].checkedIn) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function roomOccupant(uint roomIndex) public view returns (bool, address) {
+        require(
+            (rooms.length > roomIndex) && (roomIndex >= 0),
+            "Room index does not exist."
+        );
+        Room memory room = rooms[roomIndex];
+        bool occupied = false;
+        address occupant;
+        for (uint i = 0; i < room.bookings.length; i++) {
+            if (room.bookings[i].checkedIn) {
+                occupant = room.bookings[i].booker;
+                occupied = true;
+            }
+        }
+        return (occupied, occupant);
+    }
+
+    function max(uint a, uint b) public pure returns (uint) {
         return a >= b ? a : b;
     }
 
-    function max(int a, int b) external pure returns (int) {
+    function max(int a, int b) public pure returns (int) {
         return a >= b ? a : b;
     }
 
-    function min(uint a, uint b) external pure returns (uint) {
+    function min(uint a, uint b) public pure returns (uint) {
         return a <= b ? a : b;
     }
 
-    function min(int a, int b) external pure returns (int) {
+    function min(int a, int b) public pure returns (int) {
         return a <= b ? a : b;
     }
 }
