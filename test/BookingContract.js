@@ -2,6 +2,7 @@ const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
+const { time } = require("@nomicfoundation/hardhat-network-helpers");
 
 describe("BookingContract", function () {
   async function deployBasicFixture() {
@@ -23,6 +24,31 @@ describe("BookingContract", function () {
       .connect(otherAccount)
       .postRoom(50, 0, 0, 0, 20, "TestURI", 50, false, false);
     return { booking, owner, otherAccount, bookingDateTimestamp };
+  }
+
+  async function OneRoomBookedFixture(){
+    const { booking, owner, otherAccount, bookingDateTimestamp } =
+      await loadFixture(OneRoomPostedFixture);
+      // Overwrite timestamp with current time for cehck in/ out tests
+      const newBookingDateTimestamp = await time.latest();
+
+      // Owner books the room from now to three days time
+      await booking.connect(owner).bookRoom(0,newBookingDateTimestamp,3, {
+        value: ethers.utils.parseUnits("6.0", 1), // 60 gwei for 3 days stay
+      });
+      
+      return { booking, owner, otherAccount, newBookingDateTimestamp }; 
+  }
+
+  async function OneRoomCheckedInFixture(){
+    const { booking, owner, otherAccount, newBookingDateTimestamp } =
+      await loadFixture(OneRoomBookedFixture);
+      
+      await booking.connect(owner).checkIn(0, {
+          value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
+        } );
+      
+      return { booking, owner, otherAccount, newBookingDateTimestamp }; 
   }
 
   describe("Deployment", function () {
@@ -191,7 +217,6 @@ describe("BookingContract", function () {
       ).to.be.revertedWith("Room index does not exist.");
     });
 
-    // HERE
     it("Book room successfully, should increase balance of owner.", async function () {
       const { booking, owner, otherAccount, bookingDateTimestamp } =
         await loadFixture(deployBasicFixture);
@@ -383,6 +408,83 @@ describe("BookingContract", function () {
   });
 
   describe("Check In functionality", function () {
+    it("Should revert if room does not exist.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } = await loadFixture(OneRoomBookedFixture);
+
+      // Cannot change room bookable if no room exists.
+      await expect(
+        booking.connect(owner).checkIn(1)
+      ).to.be.revertedWith("Room index does not exist.");
+    });
+
+    it("Should revert if no booking for this owner.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } = await loadFixture(OneRoomBookedFixture);
+
+      // Cannot change room bookable if no room exists.
+      await expect(
+        booking.connect(otherAccount).checkIn(0, {
+          value: ethers.utils.parseUnits("10.0", 0), // 10 gwei
+        } )
+      ).to.be.revertedWith("No booking for this owner.");
+    });
+
+    it("Should check in successfull.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } = await loadFixture(OneRoomBookedFixture);
+
+      var room = await booking.getRoom(0);
+      // There should be no depot on the room.
+      expect(room.bookings[0].depot).to.equal(0);
+
+      await expect(
+        booking.connect(owner).checkIn(0, {
+          value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
+        } )
+      ).to.emit(booking, "RoomCheckedIn")
+      .withArgs(0, owner.address);
+
+      room = await booking.getRoom(0);
+      // There should be no depot on the room.
+      expect(room.bookings[0].depot).to.equal(10);
+      
+    });
+
+    it("Should revert if already checked in.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } = await loadFixture(OneRoomCheckedInFixture);
+
+      await expect(
+        booking.connect(owner).checkIn(0, {
+          value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
+        } )
+      ).to.be.revertedWith("Room is already checked in by other occupant.");
+  
+      });
+
+    it("Should revert if not enough depot.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } = await loadFixture(OneRoomBookedFixture);
+
+      await expect(
+        booking.connect(owner).checkIn(0, {
+          value: ethers.utils.parseUnits("5.0", 0), // 5 gwei
+        } )
+      ).to.be.revertedWith("Not enough depot.");
+    });
+
+    it("Should revert if outside of check in window.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } = await loadFixture(OneRoomBookedFixture);
+      
+      // Increase time to out of window.
+      await time.increaseTo(newBookingDateTimestamp+432000);
+      await expect(
+        booking.connect(owner).checkIn(0, {
+          value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
+        } )
+      ).to.be.revertedWith("Cannot checkin due to being outside checkin window.");
+
+
+    });
+  });
+
+  describe("Check out/ Forcefull eviction functionality", function () {
     //TODO
   });
 

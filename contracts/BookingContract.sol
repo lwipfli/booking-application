@@ -379,14 +379,14 @@ contract BookingContract {
             (rooms.length > roomIndex) && (roomIndex >= 0),
             "Room index does not exist."
         );
-        Room memory room = rooms[roomIndex];
+        Room storage room = rooms[roomIndex];
         uint bookingIndex;
         bool found;
         // Find correct booking
         (found, bookingIndex) = getBookingIndexOfOwner(room, msg.sender);
         require(found, "No booking for this owner.");
         require(
-            !roomHasOccupant(room),
+            !(roomHasOccupant(room)),
             "Room is already checked in by other occupant."
         );
         // Depot should be half of the day price.
