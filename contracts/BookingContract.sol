@@ -33,6 +33,15 @@ contract BookingContract {
     event RoomCheckedIn(uint indexed roomIndex, address indexed booker);
     event RoomCheckedOut(uint indexed roomIndex, address indexed booker);
 
+    //Modifiers
+    modifier roomIndexCheck(uint roomIndex) {
+        require(
+            (rooms.length > roomIndex) && (roomIndex >= 0),
+            "Room index does not exist."
+        );
+        _;
+    }
+
     // 0.005 so it is at most 0,555 kilometers in either longitude or latitude
     uint public constant SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION = 50000000000;
 
@@ -224,11 +233,7 @@ contract BookingContract {
         uint roomIndex,
         uint timestamp,
         uint numberOfDays
-    ) public payable {
-        require(
-            (rooms.length > roomIndex) && (roomIndex >= 0),
-            "Room index does not exist."
-        );
+    ) public payable roomIndexCheck(roomIndex) {
         Room storage room = rooms[roomIndex];
         require(room.bookable, "Room is not bookable at the current time.");
         require(numberOfDays > 0, "Cannot book room for zero days.");
@@ -268,11 +273,7 @@ contract BookingContract {
 
     function getBookings(
         uint roomIndex
-    ) public view returns (Booking[] memory) {
-        require(
-            (rooms.length > roomIndex) && (roomIndex >= 0),
-            "Room index does not exist."
-        );
+    ) public view roomIndexCheck(roomIndex) returns (Booking[] memory) {
         return rooms[roomIndex].bookings;
     }
 
@@ -310,11 +311,7 @@ contract BookingContract {
         uint searchRadius,
         bool adaptPrice,
         bool searchSurroundings
-    ) public {
-        require(
-            (rooms.length > roomIndex) && (roomIndex >= 0),
-            "Room index does not exist."
-        );
+    ) public roomIndexCheck(roomIndex) {
         Room storage room = rooms[roomIndex];
         require(
             room.owner == msg.sender,
@@ -336,11 +333,10 @@ contract BookingContract {
         );
     }
 
-    function setRoomBookale(uint roomIndex, bool bookable) public {
-        require(
-            (rooms.length > roomIndex) && (roomIndex >= 0),
-            "Room index does not exist."
-        );
+    function setRoomBookale(
+        uint roomIndex,
+        bool bookable
+    ) public roomIndexCheck(roomIndex) {
         Room storage room = rooms[roomIndex];
         require(
             room.owner == msg.sender,
@@ -350,8 +346,9 @@ contract BookingContract {
         emit RoomBookabeUpdate(roomIndex, bookable);
     }
 
-    function getRoom(uint roomIndex) public view returns (Room memory room) {
-        require(rooms.length >= roomIndex, "Room index does not exist.");
+    function getRoom(
+        uint roomIndex
+    ) public view roomIndexCheck(roomIndex) returns (Room memory room) {
         return rooms[roomIndex];
     }
 
@@ -374,11 +371,7 @@ contract BookingContract {
         */
     }
 
-    function checkIn(uint roomIndex) public payable {
-        require(
-            (rooms.length > roomIndex) && (roomIndex >= 0),
-            "Room index does not exist."
-        );
+    function checkIn(uint roomIndex) public payable roomIndexCheck(roomIndex) {
         Room storage room = rooms[roomIndex];
         uint bookingIndex;
         bool found;
@@ -402,11 +395,7 @@ contract BookingContract {
         emit RoomCheckedIn(roomIndex, msg.sender);
     }
 
-    function checkOut(uint roomIndex) public {
-        require(
-            (rooms.length > roomIndex) && (roomIndex >= 0),
-            "Room index does not exist."
-        );
+    function checkOut(uint roomIndex) public roomIndexCheck(roomIndex) {
         Room storage room = rooms[roomIndex];
         uint bookingIndex;
         bool found;
@@ -422,7 +411,7 @@ contract BookingContract {
         roomBookings[bookingIndex].checkedIn = false;
         depotAmount = roomBookings[bookingIndex].depot;
         roomBookings[bookingIndex].depot = 0;
-        pendingWithdrawals[msg.sender]+=depotAmount;
+        pendingWithdrawals[msg.sender] += depotAmount;
         emit RoomCheckedOut(roomIndex, msg.sender);
         // Remove booking
         for (uint i = bookingIndex; i < roomBookings.length - 1; i++) {
@@ -431,28 +420,30 @@ contract BookingContract {
         roomBookings.pop();
     }
 
-    function forceFullEviction(uint roomIndex, uint bookingIndex) public {
-        require(
-            (rooms.length > roomIndex) && (roomIndex >= 0),
-            "Room index does not exist."
-        );
+    function forceFullEviction(
+        uint roomIndex,
+        uint bookingIndex
+    ) public roomIndexCheck(roomIndex) {
         Room storage room = rooms[roomIndex];
         require(room.owner == msg.sender, "Not owner of room.");
-        require(room.bookings.length>bookingIndex,"Booking does not exist.");
+        require(room.bookings.length > bookingIndex, "Booking does not exist.");
         require(room.bookings[bookingIndex].checkedIn, "Room is not occupied.");
         // Booking must have expired for at least half a day.
-        require((room.bookings[bookingIndex].endTime + 43200)<=block.timestamp, "Not enough time passed for eviction.");
+        require(
+            (room.bookings[bookingIndex].endTime + 43200) <= block.timestamp,
+            "Not enough time passed for eviction."
+        );
         uint depotAmount;
         room.bookings[bookingIndex].checkedIn = false;
         depotAmount = room.bookings[bookingIndex].depot;
         room.bookings[bookingIndex].depot = 0;
-        pendingWithdrawals[msg.sender]+=depotAmount;
+        pendingWithdrawals[msg.sender] += depotAmount;
         emit RoomCheckedOut(roomIndex, room.bookings[bookingIndex].booker);
         // Remove booking
-        for (uint i = bookingIndex; i <  room.bookings.length - 1; i++) {
-             room.bookings[i] =  room.bookings[i + 1];
+        for (uint i = bookingIndex; i < room.bookings.length - 1; i++) {
+            room.bookings[i] = room.bookings[i + 1];
         }
-         room.bookings.pop();
+        room.bookings.pop();
     }
 
     function getBookingIndexOfOwner(
@@ -476,11 +467,9 @@ contract BookingContract {
         return false;
     }
 
-    function roomHasOccupant(uint roomIndex) internal view returns (bool) {
-        require(
-            (rooms.length > roomIndex) && (roomIndex >= 0),
-            "Room index does not exist."
-        );
+    function roomHasOccupant(
+        uint roomIndex
+    ) internal view roomIndexCheck(roomIndex) returns (bool) {
         Room memory room = rooms[roomIndex];
         for (uint i = 0; i < room.bookings.length; i++) {
             if (room.bookings[i].checkedIn) {
@@ -490,11 +479,9 @@ contract BookingContract {
         return false;
     }
 
-    function roomOccupant(uint roomIndex) public view returns (bool, address) {
-        require(
-            (rooms.length > roomIndex) && (roomIndex >= 0),
-            "Room index does not exist."
-        );
+    function roomOccupant(
+        uint roomIndex
+    ) public view roomIndexCheck(roomIndex) returns (bool, address) {
         Room memory room = rooms[roomIndex];
         bool occupied = false;
         address occupant;
