@@ -422,7 +422,7 @@ contract BookingContract {
         roomBookings[bookingIndex].checkedIn = false;
         depotAmount = roomBookings[bookingIndex].depot;
         roomBookings[bookingIndex].depot = 0;
-        payable(msg.sender).transfer(depotAmount);
+        pendingWithdrawals[msg.sender]+=depotAmount;
         emit RoomCheckedOut(roomIndex, msg.sender);
         // Remove booking
         for (uint i = bookingIndex; i < roomBookings.length - 1; i++) {
@@ -438,7 +438,21 @@ contract BookingContract {
         );
         Room storage room = rooms[roomIndex];
         require(room.owner == msg.sender, "Not owner of room.");
-        //TODO
+        require(room.bookings.length>bookingIndex,"Booking does not exist.");
+        require(room.bookings[bookingIndex].checkedIn, "Room is not occupied.");
+        // Booking must have expired for at least half a day.
+        require((room.bookings[bookingIndex].endTime + 43200)<=block.timestamp, "Not enough time passed for eviction.");
+        uint depotAmount;
+        room.bookings[bookingIndex].checkedIn = false;
+        depotAmount = room.bookings[bookingIndex].depot;
+        room.bookings[bookingIndex].depot = 0;
+        pendingWithdrawals[msg.sender]+=depotAmount;
+        emit RoomCheckedOut(roomIndex, room.bookings[bookingIndex].booker);
+        // Remove booking
+        for (uint i = bookingIndex; i <  room.bookings.length - 1; i++) {
+             room.bookings[i] =  room.bookings[i + 1];
+        }
+         room.bookings.pop();
     }
 
     function getBookingIndexOfOwner(
