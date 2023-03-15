@@ -26,29 +26,30 @@ describe("BookingContract", function () {
     return { booking, owner, otherAccount, bookingDateTimestamp };
   }
 
-  async function OneRoomBookedFixture(){
+  async function OneRoomBookedFixture() {
     const { booking, owner, otherAccount, bookingDateTimestamp } =
       await loadFixture(OneRoomPostedFixture);
-      // Overwrite timestamp with current time for cehck in/ out tests
-      const newBookingDateTimestamp = await time.latest();
+    // Overwrite timestamp with current time for cehck in/ out tests
+    const newBookingDateTimestamp = (await time.latest()) + 86400;
 
-      // Owner books the room from now to three days time
-      await booking.connect(owner).bookRoom(0,newBookingDateTimestamp,3, {
-        value: ethers.utils.parseUnits("6.0", 1), // 60 gwei for 3 days stay
-      });
-      
-      return { booking, owner, otherAccount, newBookingDateTimestamp }; 
+    // Owner books the room from now to three days time
+    await booking.connect(owner).bookRoom(0, newBookingDateTimestamp, 3, {
+      value: ethers.utils.parseUnits("6.0", 1), // 60 gwei for 3 days stay
+    });
+
+    return { booking, owner, otherAccount, newBookingDateTimestamp };
   }
 
-  async function OneRoomCheckedInFixture(){
+  async function OneRoomCheckedInFixture() {
     const { booking, owner, otherAccount, newBookingDateTimestamp } =
       await loadFixture(OneRoomBookedFixture);
-      
-      await booking.connect(owner).checkIn(0, {
-          value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
-        } );
-      
-      return { booking, owner, otherAccount, newBookingDateTimestamp }; 
+    await time.increaseTo(newBookingDateTimestamp + 86400);
+
+    await booking.connect(owner).checkIn(0, {
+      value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
+    });
+
+    return { booking, owner, otherAccount, newBookingDateTimestamp };
   }
 
   describe("Deployment", function () {
@@ -409,28 +410,31 @@ describe("BookingContract", function () {
 
   describe("Check In functionality", function () {
     it("Should revert if room does not exist.", async function () {
-      const { booking, owner, otherAccount, newBookingDateTimestamp } = await loadFixture(OneRoomBookedFixture);
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomBookedFixture);
 
       // Cannot change room bookable if no room exists.
-      await expect(
-        booking.connect(owner).checkIn(1)
-      ).to.be.revertedWith("Room index does not exist.");
+      await expect(booking.connect(owner).checkIn(1)).to.be.revertedWith(
+        "Room index does not exist."
+      );
     });
 
     it("Should revert if no booking for this owner.", async function () {
-      const { booking, owner, otherAccount, newBookingDateTimestamp } = await loadFixture(OneRoomBookedFixture);
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomBookedFixture);
 
       // Cannot change room bookable if no room exists.
       await expect(
         booking.connect(otherAccount).checkIn(0, {
           value: ethers.utils.parseUnits("10.0", 0), // 10 gwei
-        } )
+        })
       ).to.be.revertedWith("No booking for this owner.");
     });
 
     it("Should check in successfull.", async function () {
-      const { booking, owner, otherAccount, newBookingDateTimestamp } = await loadFixture(OneRoomBookedFixture);
-
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomBookedFixture);
+      await time.increaseTo(newBookingDateTimestamp + 86400);
       var room = await booking.getRoom(0);
       // There should be no depot on the room.
       expect(room.bookings[0].depot).to.equal(0);
@@ -438,53 +442,105 @@ describe("BookingContract", function () {
       await expect(
         booking.connect(owner).checkIn(0, {
           value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
-        } )
-      ).to.emit(booking, "RoomCheckedIn")
-      .withArgs(0, owner.address);
+        })
+      )
+        .to.emit(booking, "RoomCheckedIn")
+        .withArgs(0, owner.address);
 
       room = await booking.getRoom(0);
       // There should be no depot on the room.
       expect(room.bookings[0].depot).to.equal(10);
-      
     });
 
     it("Should revert if already checked in.", async function () {
-      const { booking, owner, otherAccount, newBookingDateTimestamp } = await loadFixture(OneRoomCheckedInFixture);
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomCheckedInFixture);
 
       await expect(
         booking.connect(owner).checkIn(0, {
           value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
-        } )
+        })
       ).to.be.revertedWith("Room is already checked in by other occupant.");
-  
-      });
+    });
 
     it("Should revert if not enough depot.", async function () {
-      const { booking, owner, otherAccount, newBookingDateTimestamp } = await loadFixture(OneRoomBookedFixture);
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomBookedFixture);
 
       await expect(
         booking.connect(owner).checkIn(0, {
           value: ethers.utils.parseUnits("5.0", 0), // 5 gwei
-        } )
+        })
       ).to.be.revertedWith("Not enough depot.");
     });
 
     it("Should revert if outside of check in window.", async function () {
-      const { booking, owner, otherAccount, newBookingDateTimestamp } = await loadFixture(OneRoomBookedFixture);
-      
-      // Increase time to out of window.
-      await time.increaseTo(newBookingDateTimestamp+432000);
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomBookedFixture);
+
+      // Still under check in time
       await expect(
         booking.connect(owner).checkIn(0, {
           value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
-        } )
-      ).to.be.revertedWith("Cannot checkin due to being outside checkin window.");
+        })
+      ).to.be.revertedWith(
+        "Cannot checkin due to being outside checkin window."
+      );
 
-
+      // Overshot check in time
+      await time.increaseTo(newBookingDateTimestamp + 432000);
+      await expect(
+        booking.connect(owner).checkIn(0, {
+          value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
+        })
+      ).to.be.revertedWith(
+        "Cannot checkin due to being outside checkin window."
+      );
     });
   });
 
-  describe("Check out/ Forcefull eviction functionality", function () {
+  describe("Check out functionality", function () {
+    it("Should revert if no room", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomBookedFixture);
+
+      await expect(booking.connect(owner).checkOut(1)).to.be.revertedWith(
+        "Room index does not exist."
+      );
+    });
+
+    it("Should revert if no booking for owner found found.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomBookedFixture);
+
+      await expect(
+        booking.connect(otherAccount).checkOut(0)
+      ).to.be.revertedWith("No booking for this owner.");
+    });
+
+    it("Should revert if not checked in.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomBookedFixture);
+
+      await expect(booking.connect(owner).checkOut(0)).to.be.revertedWith(
+        "Room has not been checked in."
+      );
+    });
+
+    it("Room checkout successfull.", async function () {
+      // TODO
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomCheckedInFixture);
+
+      //await expect(booking.connect(owner).checkOut(0)).to.be.revertedWith(
+      //  "Room has not been checked in."
+      //);
+    });
+
+    //TODO
+  });
+
+  describe("Forcefull eviction functionality", function () {
     //TODO
   });
 

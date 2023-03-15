@@ -1,12 +1,10 @@
 pragma solidity ^0.8.9;
 
-
 enum Amenity {
     RESTAURANT
-    }
+}
 
 struct Room {
-
     address owner;
     //bytes32 id;
     // Maximum precision for decimals should be 15.
@@ -19,7 +17,6 @@ struct Room {
     uint pricePerDay;
     string uri;
     string amenities;
-
     Booking[] bookings;
 }
 
@@ -32,5 +29,11 @@ struct Booking {
      */
     uint startTime;
     uint endTime;
+}
 
+struct Position {
+    int latitudeInteger;
+    uint latitudeDecimals;
+    int longitude;
+    uint longitudeDecimals;
 }
