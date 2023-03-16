@@ -528,20 +528,111 @@ describe("BookingContract", function () {
     });
 
     it("Room checkout successfull.", async function () {
-      // TODO
       const { booking, owner, otherAccount, newBookingDateTimestamp } =
         await loadFixture(OneRoomCheckedInFixture);
 
-      //await expect(booking.connect(owner).checkOut(0)).to.be.revertedWith(
-      //  "Room has not been checked in."
-      //);
-    });
+      // Create second booking 5 days later
+      await booking
+        .connect(otherAccount)
+        .bookRoom(0, newBookingDateTimestamp + 432000, 1, {
+          value: ethers.utils.parseUnits("2.0", 1), // 60 gwei for 3 days stay
+        });
 
-    //TODO
+      var previousContractBalance = await booking.connect(owner).checkBalance();
+      expect(previousContractBalance).to.equals(0);
+
+      var bookings = await booking.getBookings(0);
+      expect(bookings.length).to.equal(2);
+
+      var room = await booking.getRoom(0);
+      // There should be depot on the room.
+      expect(room.bookings[0].depot).to.equal(10);
+
+      await expect(booking.connect(owner).checkOut(0))
+        .to.emit(booking, "RoomCheckedOut")
+        .withArgs(0, owner.address);
+
+      // Check remaining booking
+      bookings = await booking.getBookings(0);
+      expect(bookings.length).to.equal(1);
+      expect(bookings[0].startTime).to.equal(newBookingDateTimestamp + 432000);
+      expect(bookings[0].endTime).to.equal(newBookingDateTimestamp + 518400);
+      expect(bookings[0].booker).to.equal(otherAccount.address);
+
+      previousContractBalance = await booking.connect(owner).checkBalance();
+      expect(previousContractBalance).to.equals(10);
+    });
   });
 
   describe("Forcefull eviction functionality", function () {
-    //TODO
+    it("Should revert if no room", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomBookedFixture);
+
+      await expect(
+        booking.connect(owner).forceFullEviction(1, 1)
+      ).to.be.revertedWith("Room index does not exist.");
+    });
+
+    it("Should revert if not owner room", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomBookedFixture);
+
+      await expect(
+        booking.connect(owner).forceFullEviction(0, 0)
+      ).to.be.revertedWith("Not owner of room.");
+    });
+
+    it("Should revert if booking does not exist.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomBookedFixture);
+
+      await expect(
+        booking.connect(otherAccount).forceFullEviction(0, 1)
+      ).to.be.revertedWith("Booking does not exist.");
+    });
+
+    it("Should revert if room is not occupied.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomBookedFixture);
+
+      await expect(
+        booking.connect(otherAccount).forceFullEviction(0, 0)
+      ).to.be.revertedWith("Room is not occupied.");
+    });
+
+    it("Should revert if not enough time has passed for eviction.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomCheckedInFixture);
+
+      await expect(
+        booking.connect(otherAccount).forceFullEviction(0, 0)
+      ).to.be.revertedWith("Not enough time passed for eviction.");
+    });
+
+    it("Forcefull eviction successfull.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(OneRoomCheckedInFixture);
+
+      var previousContractBalance = await booking
+        .connect(otherAccount)
+        .checkBalance();
+      expect(previousContractBalance).to.equals(60);
+
+      //Wait three days and a half
+      await time.increaseTo(
+        newBookingDateTimestamp + 86400 + 86400 + 43200 + 86400
+      );
+
+      await expect(booking.connect(otherAccount).forceFullEviction(0, 0))
+        .to.emit(booking, "RoomCheckedOut")
+        .withArgs(0, owner.address);
+
+      previousContractBalance = await booking
+        .connect(otherAccount)
+        .checkBalance();
+      expect(previousContractBalance).to.equals(70);
+    });
   });
 
   describe("Price adaption", function () {
