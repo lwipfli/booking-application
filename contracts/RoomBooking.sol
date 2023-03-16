@@ -17,7 +17,7 @@ struct Room {
     bool bookable;
     uint pricePerDay;
     string uri;
-    string amenities;
+    Amenity[] amenities;
     Booking[] bookings;
 }
 

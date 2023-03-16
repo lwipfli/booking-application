@@ -101,7 +101,7 @@ contract BookingContract {
         require(pricePerDay >= 0, "Price should not be negative.");
 
         uint idx;
-        string memory amenities;
+        Amenity[] memory amenities;
         (idx, amenities) = createRoom(
             latitude,
             latitudeDecimals,
@@ -126,7 +126,7 @@ contract BookingContract {
             latitudeDecimals,
             longitude,
             longitudeDecimals,
-            amenities,
+            turnAmentitesIntoString(amenities),
             uri
         );
     }
@@ -199,11 +199,11 @@ contract BookingContract {
         uint searchRadius,
         bool adaptPrice,
         bool searchSurroundings
-    ) internal returns (uint, string memory) {
+    ) internal returns (uint, Amenity[] memory) {
         // Room posting requires workaround due to structs using structs and mapping.
         uint idx = rooms.length;
         rooms.push();
-        string memory amenities = "None";
+        Amenity[] memory amenities;
 
         Room storage room = rooms[idx];
 
@@ -328,9 +328,34 @@ contract BookingContract {
             roomIndex,
             pricePerDay,
             searchRadius,
-            room.amenities,
+            turnAmentitesIntoString(room.amenities),
             uri
         );
+    }
+
+    function turnAmentitesIntoString(
+        Amenity[] memory amenities
+    ) internal view returns (string memory) {
+        if (amenities.length == 0) {
+            return "None";
+        }
+        string memory output;
+        string memory placeholder;
+        string memory komma = ", ";
+        for (uint i = 0; i < amenities.length; i++) {
+            if (amenities[i] == Amenity.RESTAURANT) {
+                placeholder = "restaurant";
+            }
+            if (amenities[i] == Amenity.CAFE) {
+                placeholder = "cafe";
+            }
+            if (i == 0) {
+                output = placeholder;
+            } else {
+                output = string(abi.encodePacked(output, komma, placeholder));
+            }
+        }
+        return output;
     }
 
     function setRoomBookale(

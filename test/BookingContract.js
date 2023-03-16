@@ -164,7 +164,7 @@ describe("BookingContract", function () {
       expect(room.longitudeDecimals).to.equal(0);
       expect(room.uri).to.equal("TestURI");
       expect(room.pricePerDay).to.equal(20);
-      expect(room.amenities).to.equal("None");
+      expect(room.amenities.length).to.equal(0);
       expect(room.bookable).to.equal(true);
       expect(room.searchRadius).to.equal(50);
 
@@ -183,7 +183,7 @@ describe("BookingContract", function () {
       expect(room.longitudeDecimals).to.equal(0);
       expect(room.uri).to.equal("NewURI");
       expect(room.pricePerDay).to.equal(25);
-      expect(room.amenities).to.equal("None");
+      expect(room.amenities.length).to.equal(0);
       expect(room.bookable).to.equal(true);
       expect(room.searchRadius).to.equal(60);
     });
