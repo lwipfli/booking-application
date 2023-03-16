@@ -1,7 +1,8 @@
 pragma solidity ^0.8.9;
 
 enum Amenity {
-    RESTAURANT
+    RESTAURANT,
+    CAFE
 }
 
 struct Room {
