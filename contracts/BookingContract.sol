@@ -204,6 +204,7 @@ contract BookingContract {
         uint idx = rooms.length;
         rooms.push();
         Amenity[] memory amenities;
+        Position memory position;
 
         Room storage room = rooms[idx];
 
@@ -222,10 +223,11 @@ contract BookingContract {
 
         //room.id = newId;
         room.owner = msg.sender;
-        room.latitudeInteger = latitude;
-        room.latitudeDecimals = latitudeDecimals;
-        room.longitude = longitude;
-        room.longitudeDecimals = longitudeDecimals;
+        position.latitudeInteger = latitude;
+        position.latitudeDecimals = latitudeDecimals;
+        position.longitude = longitude;
+        position.longitudeDecimals = longitudeDecimals;
+        room.position = position;
         return (idx, amenities);
     }
 
@@ -341,7 +343,6 @@ contract BookingContract {
         }
         string memory output;
         string memory placeholder;
-        string memory komma = ", ";
         for (uint i = 0; i < amenities.length; i++) {
             if (amenities[i] == Amenity.RESTAURANT) {
                 placeholder = "restaurant";
@@ -352,7 +353,7 @@ contract BookingContract {
             if (i == 0) {
                 output = placeholder;
             } else {
-                output = string(abi.encodePacked(output, komma, placeholder));
+                output = string(abi.encodePacked(output, ", ", placeholder));
             }
         }
         return output;

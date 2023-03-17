@@ -8,11 +8,7 @@ enum Amenity {
 struct Room {
     address owner;
     //bytes32 id;
-    // Maximum precision for decimals should be 15.
-    int latitudeInteger;
-    uint latitudeDecimals;
-    int longitude;
-    uint longitudeDecimals;
+    Position position;
     uint searchRadius;
     bool bookable;
     uint pricePerDay;
@@ -33,6 +29,7 @@ struct Booking {
 }
 
 struct Position {
+    // Maximum precision for decimals should be 15.
     int latitudeInteger;
     uint latitudeDecimals;
     int longitude;

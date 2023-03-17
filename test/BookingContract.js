@@ -158,10 +158,10 @@ describe("BookingContract", function () {
       const { booking, otherAccount } = await loadFixture(OneRoomPostedFixture);
 
       var room = await booking.getRoom(0);
-      expect(room.latitudeInteger).to.equal(50);
-      expect(room.latitudeDecimals).to.equal(0);
-      expect(room.longitude).to.equal(0);
-      expect(room.longitudeDecimals).to.equal(0);
+      expect(room.position.latitudeInteger).to.equal(50);
+      expect(room.position.latitudeDecimals).to.equal(0);
+      expect(room.position.longitude).to.equal(0);
+      expect(room.position.longitudeDecimals).to.equal(0);
       expect(room.uri).to.equal("TestURI");
       expect(room.pricePerDay).to.equal(20);
       expect(room.amenities.length).to.equal(0);
@@ -177,10 +177,10 @@ describe("BookingContract", function () {
         .withArgs(0, 25, 60, "None", "NewURI");
 
       room = await booking.getRoom(0);
-      expect(room.latitudeInteger).to.equal(50);
-      expect(room.latitudeDecimals).to.equal(0);
-      expect(room.longitude).to.equal(0);
-      expect(room.longitudeDecimals).to.equal(0);
+      expect(room.position.latitudeInteger).to.equal(50);
+      expect(room.position.latitudeDecimals).to.equal(0);
+      expect(room.position.longitude).to.equal(0);
+      expect(room.position.longitudeDecimals).to.equal(0);
       expect(room.uri).to.equal("NewURI");
       expect(room.pricePerDay).to.equal(25);
       expect(room.amenities.length).to.equal(0);
