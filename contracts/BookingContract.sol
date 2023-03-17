@@ -42,8 +42,16 @@ contract BookingContract {
         _;
     }
 
-    // 0.005 so it is at most 0,555 kilometers in either longitude or latitude
-    uint public constant SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION = 50000000000;
+    modifier onlyOwner() {
+        require(
+            (msg.sender == owner),
+            "Only the contract owner can use this function."
+        );
+        _;
+    }
+
+    // 0.005 so it is at most 0,555 kilometers in either longitude or latitude if value is 50000000000 for decimals (0,005) at the equator.
+    uint private SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION;
 
     address public owner;
 
@@ -57,6 +65,16 @@ contract BookingContract {
      */
     constructor() {
         owner = msg.sender;
+        SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION = 50000000000;
+    }
+
+    function updateSearchDistance(uint distance) public {
+        require(distance <= 999999999999999);
+        SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION = distance;
+    }
+
+    function getSearchDistance() public view returns (uint) {
+        return SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION;
     }
 
     function getNumberOfRooms() public view returns (uint) {

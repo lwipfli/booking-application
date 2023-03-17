@@ -635,6 +635,35 @@ describe("BookingContract", function () {
     });
   });
 
+  describe("Price distance.", function () {
+    it("Should have the default value after deployment.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(deployBasicFixture);
+
+      expect(await booking.connect(otherAccount).getSearchDistance()).to.equal(
+        50000000000
+      );
+    });
+
+    it("Should revert if the caller is not the owner.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(deployBasicFixture);
+
+      expect(
+        await booking.connect(otherAccount).updateSearchDistance(10000)
+      ).to.be.revertedWith("Not enough time passed for eviction.");
+    });
+
+    it("Should update successfully.", async function () {
+      const { booking, owner, otherAccount, newBookingDateTimestamp } =
+        await loadFixture(deployBasicFixture);
+
+      await booking.connect(owner).updateSearchDistance(10000);
+      expect(await booking.connect(otherAccount).getSearchDistance()).to.equal(
+        10000
+      );
+    });
+  });
   describe("Price adaption", function () {
     //TODO
   });
