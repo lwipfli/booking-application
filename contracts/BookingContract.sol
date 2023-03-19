@@ -243,7 +243,7 @@ contract BookingContract {
         room.owner = msg.sender;
         position.latitudeInteger = latitude;
         position.latitudeDecimals = latitudeDecimals;
-        position.longitude = longitude;
+        position.longitudeInteger = longitude;
         position.longitudeDecimals = longitudeDecimals;
         room.position = position;
         return (idx, amenities);
@@ -398,12 +398,29 @@ contract BookingContract {
 
     function averagePriceToSurrounding(
         int startingLatitude,
-        uint startingdecimals,
+        uint startingLatitudedecimals,
         int startingLongitude,
-        uint startingLongitudeDecimals,
-        uint originalPrice
+        uint startingLongitudeDecimals
     ) public view returns (uint averagedPrice) {
-        //TODO
+        Position memory upperLeftCorner;
+        Position memory upperRightCorner;
+        Position memory lowerLeftCorner;
+        Position memory lowerRightCorner;
+        bool overlap = false;
+        uint price = 0;
+        (
+            overlap,
+            upperLeftCorner,
+            upperRightCorner,
+            lowerLeftCorner,
+            lowerRightCorner
+        ) = calculateCorners(
+            startingLatitude,
+            startingLatitudedecimals,
+            startingLongitude,
+            startingLongitudeDecimals
+        );
+
         /*
         uint numberOfRooms = 1;
         uint price = originalPrice;
@@ -413,6 +430,163 @@ contract BookingContract {
             }
         }
         */
+    }
+
+    function calculateCorners(
+        int startingLatitude,
+        uint startingLatitudedecimals,
+        int startingLongitude,
+        uint startingLongitudeDecimals
+    )
+        internal
+        view
+        returns (
+            bool overlap,
+            Position memory upperLeftCorner,
+            Position memory upperRightCorner,
+            Position memory lowerLeftCorner,
+            Position memory lowerRightCorner
+        )
+    {
+        Position memory upperLeftCorner;
+        Position memory upperRightCorner;
+        Position memory lowerLeftCorner;
+        Position memory lowerRightCorner;
+        bool overlap = false;
+
+        // Handle positive latitudes
+        upperLeftCorner.latitudeDecimals =
+            startingLatitudedecimals +
+            SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION;
+        upperLeftCorner.latitudeInteger = startingLatitude;
+        upperRightCorner.latitudeDecimals =
+            startingLatitudedecimals +
+            SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION;
+        upperRightCorner.latitudeInteger = startingLatitude;
+
+        // Handle overflow.
+        if (upperLeftCorner.latitudeDecimals > 999999999999999) {
+            upperLeftCorner.latitudeDecimals -= 999999999999999;
+            upperLeftCorner.latitudeInteger += 1;
+            upperRightCorner.latitudeDecimals -= 999999999999999;
+            upperRightCorner.latitudeInteger += 1;
+        }
+        // Handle limit of 90.
+        if (upperLeftCorner.latitudeInteger >= 90) {
+            upperLeftCorner.latitudeInteger = 90;
+            upperLeftCorner.latitudeDecimals = 0;
+            upperRightCorner.latitudeInteger = 90;
+            upperRightCorner.latitudeDecimals = 0;
+        }
+
+        // Handle negative latitudes
+        lowerLeftCorner.latitudeInteger = startingLatitude;
+        lowerRightCorner.latitudeInteger = startingLatitude;
+
+        // Handle undeflow.
+        if (
+            startingLatitudedecimals < SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION
+        ) {
+            lowerLeftCorner.latitudeDecimals =
+                startingLatitudedecimals +
+                999999999999999 -
+                SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION;
+            lowerRightCorner.latitudeDecimals =
+                startingLatitudedecimals +
+                999999999999999 -
+                SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION;
+            lowerLeftCorner.latitudeInteger -= 1;
+            lowerRightCorner.latitudeInteger -= 1;
+        }
+        // Handle limit of -90.
+        if (lowerLeftCorner.latitudeInteger <= -90) {
+            lowerLeftCorner.latitudeDecimals = 0;
+            lowerRightCorner.latitudeDecimals = 0;
+            lowerLeftCorner.latitudeInteger = -90;
+            lowerRightCorner.latitudeInteger = -90;
+        }
+
+        // Handle positive longitudes
+        upperRightCorner.longitudeInteger = startingLongitude;
+        upperRightCorner.longitudeDecimals =
+            startingLongitudeDecimals +
+            SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION;
+        lowerRightCorner.longitudeInteger = startingLongitude;
+        lowerRightCorner.longitudeDecimals =
+            startingLongitudeDecimals +
+            SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION;
+
+        // Handle overflow.
+        if (upperRightCorner.longitudeDecimals > 999999999999999) {
+            upperRightCorner.longitudeDecimals -= 999999999999999;
+            upperRightCorner.longitudeInteger += 1;
+            lowerRightCorner.longitudeDecimals -= 999999999999999;
+            lowerRightCorner.longitudeInteger += 1;
+        }
+        // Handle overlap.
+        if (
+            upperRightCorner.longitudeInteger >= 180 &&
+            upperRightCorner.longitudeDecimals > 0
+        ) {
+            overlap = true;
+            upperRightCorner.longitudeInteger =
+                upperRightCorner.longitudeInteger -
+                360;
+            upperRightCorner.longitudeDecimals =
+                999999999999999 -
+                upperRightCorner.longitudeDecimals;
+            lowerRightCorner.longitudeInteger =
+                lowerRightCorner.longitudeInteger -
+                360;
+            lowerRightCorner.longitudeDecimals =
+                999999999999999 -
+                lowerRightCorner.longitudeDecimals;
+        }
+
+        //Handle negative longitudes
+        upperLeftCorner.longitudeInteger = startingLongitude;
+        lowerLeftCorner.longitudeInteger = startingLongitude;
+
+        if (
+            startingLongitudeDecimals < SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION
+        ) {
+            upperLeftCorner.latitudeDecimals =
+                startingLongitudeDecimals +
+                999999999999999 -
+                SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION;
+            lowerLeftCorner.latitudeDecimals =
+                startingLongitudeDecimals +
+                999999999999999 -
+                SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION;
+            upperLeftCorner.longitudeInteger -= 1;
+            lowerLeftCorner.longitudeInteger -= 1;
+        }
+        //Handle overlap
+        if (
+            upperLeftCorner.longitudeInteger <= -180 &&
+            upperLeftCorner.longitudeDecimals > 0
+        ) {
+            overlap = true;
+            upperLeftCorner.longitudeInteger =
+                upperLeftCorner.longitudeInteger +
+                360;
+            upperLeftCorner.longitudeDecimals =
+                999999999999999 -
+                upperLeftCorner.longitudeDecimals;
+            lowerLeftCorner.longitudeInteger =
+                lowerLeftCorner.longitudeInteger +
+                360;
+            lowerLeftCorner.longitudeDecimals =
+                999999999999999 -
+                lowerLeftCorner.longitudeDecimals;
+        }
+        return (
+            overlap,
+            upperLeftCorner,
+            upperRightCorner,
+            lowerLeftCorner,
+            lowerRightCorner
+        );
     }
 
     function checkIn(uint roomIndex) public payable roomIndexCheck(roomIndex) {

@@ -160,7 +160,7 @@ describe("BookingContract", function () {
       var room = await booking.getRoom(0);
       expect(room.position.latitudeInteger).to.equal(50);
       expect(room.position.latitudeDecimals).to.equal(0);
-      expect(room.position.longitude).to.equal(0);
+      expect(room.position.longitudeInteger).to.equal(0);
       expect(room.position.longitudeDecimals).to.equal(0);
       expect(room.uri).to.equal("TestURI");
       expect(room.pricePerDay).to.equal(20);
@@ -179,7 +179,7 @@ describe("BookingContract", function () {
       room = await booking.getRoom(0);
       expect(room.position.latitudeInteger).to.equal(50);
       expect(room.position.latitudeDecimals).to.equal(0);
-      expect(room.position.longitude).to.equal(0);
+      expect(room.position.longitudeInteger).to.equal(0);
       expect(room.position.longitudeDecimals).to.equal(0);
       expect(room.uri).to.equal("NewURI");
       expect(room.pricePerDay).to.equal(25);

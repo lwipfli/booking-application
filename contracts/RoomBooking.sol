@@ -32,6 +32,6 @@ struct Position {
     // Maximum precision for decimals should be 15.
     int latitudeInteger;
     uint latitudeDecimals;
-    int longitude;
+    int longitudeInteger;
     uint longitudeDecimals;
 }
