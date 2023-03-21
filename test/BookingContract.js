@@ -188,6 +188,7 @@ describe("BookingContract", function () {
         )
       ).to.equal("50.000000000000123000");
 
+      // Cannot be tested due to Javascript limitations.
       /*
       expect(
         await booking.convertInt256ToString(
