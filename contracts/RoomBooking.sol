@@ -29,9 +29,6 @@ struct Booking {
 }
 
 struct Position {
-    // Maximum precision for decimals should be 15.
-    int latitudeInteger;
-    uint latitudeDecimals;
-    int longitudeInteger;
-    uint longitudeDecimals;
+    int256 latitude;
+    int256 longitude;
 }

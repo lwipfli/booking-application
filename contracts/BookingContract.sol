@@ -2,17 +2,17 @@ pragma solidity ^0.8.9;
 
 import "./RoomBooking.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "prb-math/contracts/PRBMathSD59x18.sol";
 
 contract BookingContract {
+    using PRBMathSD59x18 for int256;
     // Events
     event RoomPosted(
         uint indexed roomIndex,
         address indexed owner,
         uint pricePerDay,
-        int latitude,
-        uint latitudeDecimals,
-        int longitude,
-        uint longitudeDecimals,
+        int256 latitude,
+        int256 longitude,
         string amenities,
         string uri
     );
@@ -50,9 +50,6 @@ contract BookingContract {
         _;
     }
 
-    // 0.005 so it is at most 0,555 kilometers in either longitude or latitude if value is 50000000000 for decimals (0,005) at the equator.
-    uint private SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION;
-
     address public owner;
 
     Room[] public rooms;
@@ -60,21 +57,22 @@ contract BookingContract {
     mapping(address => uint[]) public roomsCreatedByOwners;
     mapping(address => uint) public pendingWithdrawals;
 
+    uint public distanceSearchRadius;
+
     /**
      * Contract initialization.
      */
     constructor() {
         owner = msg.sender;
-        SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION = 50000000000;
+        distanceSearchRadius = 500;
     }
 
-    function updateSearchDistance(uint distance) public {
-        require(distance <= 999999999999999);
-        SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION = distance;
+    function updateSearchDistance(uint distance) public onlyOwner {
+        distanceSearchRadius = distance;
     }
 
     function getSearchDistance() public view returns (uint) {
-        return SURROUNDING_DISTANCE_FOR_PRICE_ADAPTION;
+        return distanceSearchRadius;
     }
 
     function getNumberOfRooms() public view returns (uint) {
@@ -88,10 +86,8 @@ contract BookingContract {
     }
 
     function postRoom(
-        int latitude,
-        uint latitudeDecimals,
-        int longitude,
-        uint longitudeDecimals,
+        int256 latitude,
+        int256 longitude,
         uint pricePerDay,
         string calldata uri,
         uint searchRadius,
@@ -101,20 +97,14 @@ contract BookingContract {
         // Check if it is possible to create a new room.
 
         require(
-            (-90 <= latitude) && (latitude <= 90),
+            (-90000000000000000000 <= latitude) &&
+                (latitude <= 90000000000000000000),
             "Latitude is not a value between -90 and 90."
         );
         require(
-            (0 <= latitudeDecimals) && (latitudeDecimals <= 999999999999999),
-            "Latitude precision is not of valid length. Only 15 decimal points are supported."
-        );
-        require(
-            (-180 <= longitude) && (longitude <= 180),
+            (-180000000000000000000 <= longitude) &&
+                (longitude <= 180000000000000000000),
             "Longitude is not a value between -180 and 180."
-        );
-        require(
-            (0 <= longitudeDecimals) && (longitudeDecimals <= 999999999999999),
-            "Longitude precision is not of valid length. Only 15 decimal points are supported."
         );
         require(pricePerDay >= 0, "Price should not be negative.");
 
@@ -122,9 +112,7 @@ contract BookingContract {
         Amenity[] memory amenities;
         (idx, amenities) = createRoom(
             latitude,
-            latitudeDecimals,
             longitude,
-            longitudeDecimals,
             pricePerDay,
             uri,
             searchRadius,
@@ -141,9 +129,7 @@ contract BookingContract {
             msg.sender,
             pricePerDay,
             latitude,
-            latitudeDecimals,
             longitude,
-            longitudeDecimals,
             turnAmentitesIntoString(amenities),
             uri
         );
@@ -153,65 +139,74 @@ contract BookingContract {
         roomsCreatedByOwners[roomOwner].push(roomIndex);
     }
 
-    function convertLatLongToString(
-        int value,
-        uint decimals
+    function convertInt256ToString(
+        int256 value
     ) public pure returns (string memory) {
+        int256 integer = value / 1000000000000000000;
+        int256 fractal = value;
         string memory prefix = "";
-        int val = value;
         string memory decimalPadding = "";
 
-        if (val < 0) {
-            val = val * (-1);
+        if (integer < 0) {
             prefix = "-";
+            integer = integer * -1;
         }
+        if (fractal < 0) {
+            fractal = fractal * (-1);
+        }
+        fractal = fractal % 1000000000000000000;
 
-        if ((0 < decimals) && (decimals < 10)) {
+        if ((0 < fractal) && (fractal < 10)) {
+            decimalPadding = "00000000000000000";
+        } else if (fractal < 100) {
+            decimalPadding = "0000000000000000";
+        } else if (fractal < 1000) {
+            decimalPadding = "000000000000000";
+        } else if (fractal < 10000) {
             decimalPadding = "00000000000000";
-        } else if (decimals < 100) {
+        } else if (fractal < 100000) {
             decimalPadding = "0000000000000";
-        } else if (decimals < 1000) {
+        } else if (fractal < 1000000) {
             decimalPadding = "000000000000";
-        } else if (decimals < 10000) {
+        } else if (fractal < 10000000) {
             decimalPadding = "00000000000";
-        } else if (decimals < 100000) {
+        } else if (fractal < 100000000) {
             decimalPadding = "0000000000";
-        } else if (decimals < 1000000) {
+        } else if (fractal < 1000000000) {
             decimalPadding = "000000000";
-        } else if (decimals < 10000000) {
+        } else if (fractal < 10000000000) {
             decimalPadding = "00000000";
-        } else if (decimals < 100000000) {
+        } else if (fractal < 100000000000) {
             decimalPadding = "0000000";
-        } else if (decimals < 1000000000) {
+        } else if (fractal < 1000000000000) {
             decimalPadding = "000000";
-        } else if (decimals < 10000000000) {
+        } else if (fractal < 10000000000000) {
             decimalPadding = "00000";
-        } else if (decimals < 100000000000) {
+        } else if (fractal < 100000000000000) {
             decimalPadding = "0000";
-        } else if (decimals < 1000000000000) {
+        } else if (fractal < 1000000000000000) {
             decimalPadding = "000";
-        } else if (decimals < 10000000000000) {
+        } else if (fractal < 10000000000000000) {
             decimalPadding = "00";
-        } else if (decimals < 100000000000000) {
+        } else if (fractal < 100000000000000000) {
             decimalPadding = "0";
         }
+
         return
             string(
                 abi.encodePacked(
                     prefix,
-                    Strings.toString(uint(val)),
+                    Strings.toString(uint(integer)),
                     ".",
                     decimalPadding,
-                    Strings.toString(uint(decimals))
+                    Strings.toString(uint(fractal))
                 )
             );
     }
 
     function createRoom(
-        int latitude,
-        uint latitudeDecimals,
-        int longitude,
-        uint longitudeDecimals,
+        int256 latitude,
+        int256 longitude,
         uint pricePerDay,
         string calldata uri,
         uint searchRadius,
@@ -241,10 +236,8 @@ contract BookingContract {
 
         //room.id = newId;
         room.owner = msg.sender;
-        position.latitudeInteger = latitude;
-        position.latitudeDecimals = latitudeDecimals;
-        position.longitudeInteger = longitude;
-        position.longitudeDecimals = longitudeDecimals;
+        position.latitude = latitude;
+        position.longitude = longitude;
         room.position = position;
         return (idx, amenities);
     }
@@ -257,7 +250,6 @@ contract BookingContract {
         Room storage room = rooms[roomIndex];
         require(room.bookable, "Room is not bookable at the current time.");
         require(numberOfDays > 0, "Cannot book room for zero days.");
-        // TODO TEST FROM HERE
         require(
             msg.value >= (room.pricePerDay * numberOfDays),
             "Payment is not enough for room."
@@ -397,10 +389,9 @@ contract BookingContract {
     }
 
     function averagePriceToSurrounding(
-        int startingLatitude,
-        uint startingLatitudedecimals,
-        int startingLongitude,
-        uint startingLongitudeDecimals
+        int256 latitude,
+        int256 longitude,
+        uint distance
     ) public view returns (uint averagedPrice) {}
 
     function checkIn(uint roomIndex) public payable roomIndexCheck(roomIndex) {

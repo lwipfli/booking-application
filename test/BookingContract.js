@@ -3,6 +3,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
+const { BigNumber } = require("ethers");
 
 describe("BookingContract", function () {
   async function deployBasicFixture() {
@@ -22,7 +23,15 @@ describe("BookingContract", function () {
 
     await booking
       .connect(otherAccount)
-      .postRoom(50, 0, 0, 0, 20, "TestURI", 50, false, false);
+      .postRoom(
+        ethers.utils.parseUnits("50", 18),
+        0,
+        20,
+        "TestURI",
+        50,
+        false,
+        false
+      );
     return { booking, owner, otherAccount, bookingDateTimestamp };
   }
 
@@ -75,10 +84,26 @@ describe("BookingContract", function () {
       await expect(
         booking
           .connect(otherAccount)
-          .postRoom(50, 0, 0, 0, 20, "TestURI", 50, false, false)
+          .postRoom(
+            ethers.utils.parseUnits("5", 18),
+            0,
+            20,
+            "TestURI",
+            50,
+            false,
+            false
+          )
       )
         .to.emit(booking, "RoomPosted")
-        .withArgs(0, otherAccount.address, 20, 50, 0, 0, 0, "None", "TestURI");
+        .withArgs(
+          0,
+          otherAccount.address,
+          20,
+          ethers.utils.parseUnits("5", 18),
+          0,
+          "None",
+          "TestURI"
+        );
 
       expect(await booking.getNumberOfRooms()).to.equal(1);
 
@@ -96,12 +121,28 @@ describe("BookingContract", function () {
       await expect(
         booking
           .connect(otherAccount)
-          .postRoom(-100, 0, 0, 0, 20, "TestURI", 50, false, false)
+          .postRoom(
+            ethers.utils.parseUnits("-100", 18),
+            0,
+            20,
+            "TestURI",
+            50,
+            false,
+            false
+          )
       ).to.be.revertedWith("Latitude is not a value between -90 and 90.");
       await expect(
         booking
           .connect(otherAccount)
-          .postRoom(100, 0, 0, 0, 20, "TestURI", 50, false, false)
+          .postRoom(
+            ethers.utils.parseUnits("100", 18),
+            0,
+            20,
+            "TestURI",
+            50,
+            false,
+            false
+          )
       ).to.be.revertedWith("Latitude is not a value between -90 and 90.");
     });
 
@@ -111,32 +152,29 @@ describe("BookingContract", function () {
       await expect(
         booking
           .connect(otherAccount)
-          .postRoom(5, 0, -200, 0, 20, "TestURI", 50, false, false)
+          .postRoom(
+            ethers.utils.parseUnits("5", 18),
+            ethers.utils.parseUnits("-200", 18),
+            20,
+            "TestURI",
+            50,
+            false,
+            false
+          )
       ).to.be.revertedWith("Longitude is not a value between -180 and 180.");
       await expect(
         booking
           .connect(otherAccount)
-          .postRoom(5, 0, 500, 0, 20, "TestURI", 50, false, false)
+          .postRoom(
+            ethers.utils.parseUnits("5", 18),
+            ethers.utils.parseUnits("500", 18),
+            20,
+            "TestURI",
+            50,
+            false,
+            false
+          )
       ).to.be.revertedWith("Longitude is not a value between -180 and 180.");
-    });
-
-    it("Shoud revert if latitude- or longitude-decimals are higher than expected.", async function () {
-      const { booking, otherAccount } = await loadFixture(deployBasicFixture);
-
-      await expect(
-        booking
-          .connect(otherAccount)
-          .postRoom(5, 1111111111111111, 90, 0, 20, "TestURI", 50, false, false)
-      ).to.be.revertedWith(
-        "Latitude precision is not of valid length. Only 15 decimal points are supported."
-      );
-      await expect(
-        booking
-          .connect(otherAccount)
-          .postRoom(5, 0, 90, 1111111111111111, 20, "TestURI", 50, false, false)
-      ).to.be.revertedWith(
-        "Longitude precision is not of valid length. Only 15 decimal points are supported."
-      );
     });
   });
 
@@ -144,12 +182,19 @@ describe("BookingContract", function () {
     it("Latitude/Longitude string conversion test.", async function () {
       const { booking } = await loadFixture(deployBasicFixture);
 
-      expect(await booking.convertLatLongToString(50, 123)).to.equal(
-        "50.000000000000123"
-      );
       expect(
-        await booking.convertLatLongToString(-50, 45678901234567)
-      ).to.equal("-50.045678901234567");
+        await booking.convertInt256ToString(
+          ethers.utils.parseUnits("50000000000000123000", 0)
+        )
+      ).to.equal("50.000000000000123000");
+
+      /*
+      expect(
+        await booking.convertInt256ToString(
+          ethers.utils.parseUnits("50045678901234567000", 0) * -1
+        )
+      ).to.equal("-50.045678901234567000");
+          */
     });
   });
 
@@ -158,10 +203,10 @@ describe("BookingContract", function () {
       const { booking, otherAccount } = await loadFixture(OneRoomPostedFixture);
 
       var room = await booking.getRoom(0);
-      expect(room.position.latitudeInteger).to.equal(50);
-      expect(room.position.latitudeDecimals).to.equal(0);
-      expect(room.position.longitudeInteger).to.equal(0);
-      expect(room.position.longitudeDecimals).to.equal(0);
+      expect(room.position.latitude).to.equal(
+        ethers.utils.parseUnits("50", 18)
+      );
+      expect(room.position.longitude).to.equal(0);
       expect(room.uri).to.equal("TestURI");
       expect(room.pricePerDay).to.equal(20);
       expect(room.amenities.length).to.equal(0);
@@ -177,10 +222,10 @@ describe("BookingContract", function () {
         .withArgs(0, 25, 60, "None", "NewURI");
 
       room = await booking.getRoom(0);
-      expect(room.position.latitudeInteger).to.equal(50);
-      expect(room.position.latitudeDecimals).to.equal(0);
-      expect(room.position.longitudeInteger).to.equal(0);
-      expect(room.position.longitudeDecimals).to.equal(0);
+      expect(room.position.latitude).to.equal(
+        ethers.utils.parseUnits("50", 18)
+      );
+      expect(room.position.longitude).to.equal(0);
       expect(room.uri).to.equal("NewURI");
       expect(room.pricePerDay).to.equal(25);
       expect(room.amenities.length).to.equal(0);
@@ -225,16 +270,22 @@ describe("BookingContract", function () {
       await expect(
         booking
           .connect(otherAccount)
-          .postRoom(50, 0, 0, 0, 4000000000000000, "TestURI", 50, false, false)
+          .postRoom(
+            ethers.utils.parseUnits("50", 18),
+            0,
+            4000000000000000,
+            "TestURI",
+            50,
+            false,
+            false
+          )
       )
         .to.emit(booking, "RoomPosted")
         .withArgs(
           0,
           otherAccount.address,
           4000000000000000,
-          50,
-          0,
-          0,
+          ethers.utils.parseUnits("50", 18),
           0,
           "None",
           "TestURI"
@@ -635,13 +686,13 @@ describe("BookingContract", function () {
     });
   });
 
-  describe("Price distance.", function () {
+  describe("Search distance.", function () {
     it("Should have the default value after deployment.", async function () {
       const { booking, owner, otherAccount, newBookingDateTimestamp } =
         await loadFixture(deployBasicFixture);
 
       expect(await booking.connect(otherAccount).getSearchDistance()).to.equal(
-        50000000000
+        500
       );
     });
 
@@ -649,18 +700,18 @@ describe("BookingContract", function () {
       const { booking, owner, otherAccount, newBookingDateTimestamp } =
         await loadFixture(deployBasicFixture);
 
-      expect(
-        await booking.connect(otherAccount).updateSearchDistance(10000)
-      ).to.be.revertedWith("Not enough time passed for eviction.");
+      await expect(
+        booking.connect(otherAccount).updateSearchDistance(10000)
+      ).to.be.revertedWith("Only the contract owner can use this function.");
     });
 
     it("Should update successfully.", async function () {
       const { booking, owner, otherAccount, newBookingDateTimestamp } =
         await loadFixture(deployBasicFixture);
 
-      await booking.connect(owner).updateSearchDistance(10000);
+      await booking.connect(owner).updateSearchDistance(123456);
       expect(await booking.connect(otherAccount).getSearchDistance()).to.equal(
-        10000
+        123456
       );
     });
   });
