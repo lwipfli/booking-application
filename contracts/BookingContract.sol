@@ -2,7 +2,6 @@ pragma solidity ^0.8.9;
 
 import "./RoomBooking.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
-import "./trigonometry/Trigonometry.sol";
 
 contract BookingContract {
     using PRBMathSD59x18 for int256;
@@ -317,47 +316,6 @@ contract BookingContract {
         int256 longitude,
         uint distance
     ) public view returns (uint averagedPrice) {}
-
-    function computeDistance(
-        int256 lat1,
-        int256 long1,
-        int256 lat2,
-        int256 long2
-    ) public returns (uint distanceMeters) {
-        // From https://www.movable-type.co.uk/scripts/latlong.html
-        uint256 R = 6371000;
-        int256 phi1 = (lat1 * int(Trigonometry.PI)) / 180;
-        if (phi1 < 0) {
-            phi1 += 360;
-        }
-        int256 phi2 = (lat2 * int(Trigonometry.PI)) / 180;
-        if (phi2 < 0) {
-            phi2 += 360;
-        }
-        int256 deltaPhi = ((lat2 - lat1) * int(Trigonometry.PI)) / 180;
-        if (deltaPhi < 0) {
-            deltaPhi += 360;
-        }
-        int256 deltaLambda = ((long2 - long1) * int(Trigonometry.PI)) / 180;
-        if (deltaLambda < 0) {
-            deltaLambda += 360;
-        }
-
-        int256 a = (Trigonometry.sin(uint(deltaPhi / 2)) *
-            Trigonometry.sin(uint(deltaPhi / 2))) +
-            (Trigonometry.cos(uint(phi1)) *
-                Trigonometry.cos(uint(phi2)) *
-                Trigonometry.sin(uint(deltaPhi / 2)) *
-                Trigonometry.sin(uint(deltaPhi / 2)));
-        uint256 c = 2 * atan2(a.sqrt(), (PRBMathSD59x18.SCALE - a).sqrt());
-        return uint(R * c);
-    }
-
-    function tangent(uint256 x) internal pure returns (uint256) {
-        return uint256(Trigonometry.sin(x) / Trigonometry.cos(x));
-    }
-
-    function atan2(int256 x, int256 y) internal pure returns (uint256) {}
 
     function checkIn(uint roomIndex) public payable roomIndexCheck(roomIndex) {
         Room storage room = rooms[roomIndex];
