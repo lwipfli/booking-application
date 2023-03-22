@@ -130,7 +130,7 @@ describe("BookingContract", function () {
             false,
             false
           )
-      ).to.be.revertedWith("Latitude is not a value between -90 and 90.");
+      ).to.be.revertedWithoutReason();
       await expect(
         booking
           .connect(otherAccount)
@@ -143,7 +143,7 @@ describe("BookingContract", function () {
             false,
             false
           )
-      ).to.be.revertedWith("Latitude is not a value between -90 and 90.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if longitude is higher or lower than expeceted.", async function () {
@@ -161,7 +161,7 @@ describe("BookingContract", function () {
             false,
             false
           )
-      ).to.be.revertedWith("Longitude is not a value between -180 and 180.");
+      ).to.be.revertedWithoutReason();
       await expect(
         booking
           .connect(otherAccount)
@@ -174,7 +174,7 @@ describe("BookingContract", function () {
             false,
             false
           )
-      ).to.be.revertedWith("Longitude is not a value between -180 and 180.");
+      ).to.be.revertedWithoutReason();
     });
   });
 
@@ -703,7 +703,7 @@ describe("BookingContract", function () {
 
       await expect(
         booking.connect(otherAccount).updateSearchDistance(10000)
-      ).to.be.revertedWith("Only the contract owner can use this function.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should update successfully.", async function () {
@@ -716,6 +716,11 @@ describe("BookingContract", function () {
       );
     });
   });
+
+  describe("Distance computation", function () {
+    //TODO
+  });
+
   describe("Price adaption", function () {
     //TODO
   });

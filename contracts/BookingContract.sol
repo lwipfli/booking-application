@@ -1,8 +1,8 @@
 pragma solidity ^0.8.9;
 
 import "./RoomBooking.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
+import "./trigonometry/Trigonometry.sol";
 
 contract BookingContract {
     using PRBMathSD59x18 for int256;
@@ -33,7 +33,6 @@ contract BookingContract {
     event RoomCheckedIn(uint indexed roomIndex, address indexed booker);
     event RoomCheckedOut(uint indexed roomIndex, address indexed booker);
 
-    //Modifiers
     modifier roomIndexCheck(uint roomIndex) {
         require(
             (rooms.length > roomIndex) && (roomIndex >= 0),
@@ -44,8 +43,7 @@ contract BookingContract {
 
     modifier onlyOwner() {
         require(
-            (msg.sender == owner),
-            "Only the contract owner can use this function."
+            (msg.sender == owner)
         );
         _;
     }
@@ -53,15 +51,12 @@ contract BookingContract {
     address public owner;
 
     Room[] public rooms;
-    //Mappings
+
     mapping(address => uint[]) public roomsCreatedByOwners;
     mapping(address => uint) public pendingWithdrawals;
 
     uint public distanceSearchRadius;
 
-    /**
-     * Contract initialization.
-     */
     constructor() {
         owner = msg.sender;
         distanceSearchRadius = 500;
@@ -94,19 +89,15 @@ contract BookingContract {
         bool adaptPrice,
         bool searchSurroundings
     ) external {
-        // Check if it is possible to create a new room.
-
         require(
             (-90000000000000000000 <= latitude) &&
-                (latitude <= 90000000000000000000),
-            "Latitude is not a value between -90 and 90."
+                (latitude <= 90000000000000000000)
         );
         require(
             (-180000000000000000000 <= longitude) &&
-                (longitude <= 180000000000000000000),
-            "Longitude is not a value between -180 and 180."
+                (longitude <= 180000000000000000000)
         );
-        require(pricePerDay >= 0, "Price should not be negative.");
+        require(pricePerDay >= 0);
 
         uint idx;
         Amenity[] memory amenities;
@@ -141,67 +132,8 @@ contract BookingContract {
 
     function convertInt256ToString(
         int256 value
-    ) public pure returns (string memory) {
-        int256 integer = value / 1000000000000000000;
-        int256 fractal = value;
-        string memory prefix = "";
-        string memory decimalPadding = "";
-
-        if (integer < 0) {
-            prefix = "-";
-            integer = integer * -1;
-        }
-        if (fractal < 0) {
-            fractal = fractal * (-1);
-        }
-        fractal = fractal % 1000000000000000000;
-
-        if ((0 < fractal) && (fractal < 10)) {
-            decimalPadding = "00000000000000000";
-        } else if (fractal < 100) {
-            decimalPadding = "0000000000000000";
-        } else if (fractal < 1000) {
-            decimalPadding = "000000000000000";
-        } else if (fractal < 10000) {
-            decimalPadding = "00000000000000";
-        } else if (fractal < 100000) {
-            decimalPadding = "0000000000000";
-        } else if (fractal < 1000000) {
-            decimalPadding = "000000000000";
-        } else if (fractal < 10000000) {
-            decimalPadding = "00000000000";
-        } else if (fractal < 100000000) {
-            decimalPadding = "0000000000";
-        } else if (fractal < 1000000000) {
-            decimalPadding = "000000000";
-        } else if (fractal < 10000000000) {
-            decimalPadding = "00000000";
-        } else if (fractal < 100000000000) {
-            decimalPadding = "0000000";
-        } else if (fractal < 1000000000000) {
-            decimalPadding = "000000";
-        } else if (fractal < 10000000000000) {
-            decimalPadding = "00000";
-        } else if (fractal < 100000000000000) {
-            decimalPadding = "0000";
-        } else if (fractal < 1000000000000000) {
-            decimalPadding = "000";
-        } else if (fractal < 10000000000000000) {
-            decimalPadding = "00";
-        } else if (fractal < 100000000000000000) {
-            decimalPadding = "0";
-        }
-
-        return
-            string(
-                abi.encodePacked(
-                    prefix,
-                    Strings.toString(uint(integer)),
-                    ".",
-                    decimalPadding,
-                    Strings.toString(uint(fractal))
-                )
-            );
+    ) public pure returns (string memory){
+        return BookingLib.convertInt256ToString(value);
     }
 
     function createRoom(
@@ -213,16 +145,12 @@ contract BookingContract {
         bool adaptPrice,
         bool searchSurroundings
     ) internal returns (uint, Amenity[] memory) {
-        // Room posting requires workaround due to structs using structs and mapping.
         uint idx = rooms.length;
         rooms.push();
         Amenity[] memory amenities;
         Position memory position;
 
         Room storage room = rooms[idx];
-
-        //uint roomsCreated = roomsCreatedByOwners[msg.sender].length -1;
-        //bytes32 newId = keccak256(abi.encodePacked(msg.sender,roomsCreated));
 
         //TODO Hanlde price adaption
 
@@ -234,7 +162,6 @@ contract BookingContract {
         room.pricePerDay = pricePerDay;
         room.amenities = amenities;
 
-        //room.id = newId;
         room.owner = msg.sender;
         position.latitude = latitude;
         position.longitude = longitude;
@@ -262,7 +189,6 @@ contract BookingContract {
         );
         addBooking(roomIndex, msg.sender, timestamp, endTime);
         emit RoomBooked(roomIndex, msg.sender, timestamp, endTime);
-        // Handle payment.
         pendingWithdrawals[room.owner] += msg.value;
     }
 
@@ -396,7 +322,38 @@ contract BookingContract {
 
 
     function computeDistance(int256 lat1, int256 long1, int256 lat2, int256 long2) public returns (uint distanceMeters){
-        
+        // From https://www.movable-type.co.uk/scripts/latlong.html
+        uint256 R = 6371000;
+        int256 phi1 = (lat1 * int(Trigonometry.PI))/180;
+        if(phi1<0){
+            phi1+=360;
+        }
+        int256 phi2 = (lat2 * int(Trigonometry.PI))/180;
+        if(phi2<0){
+            phi2+=360;
+        }
+        int256 deltaPhi = ((lat2-lat1) * int(Trigonometry.PI))/180;
+        if(deltaPhi<0){
+            deltaPhi+=360;
+        }
+        int256 deltaLambda = ((long2-long1) * int(Trigonometry.PI))/180;
+        if(deltaLambda<0){
+            deltaLambda+=360;
+        }
+
+        int256 a = (Trigonometry.sin(uint(deltaPhi/2)) * Trigonometry.sin(uint(deltaPhi/2))) +
+        (Trigonometry.cos(uint(phi1))*Trigonometry.cos(uint(phi2)) * Trigonometry.sin(uint(deltaPhi/2))  * Trigonometry.sin(uint(deltaPhi/2)));
+        uint256 c = 2 * atan2(a.sqrt(),(PRBMathSD59x18.SCALE-a).sqrt());
+        return uint(R*c);
+    }
+
+    function tangent(uint256 x)internal pure returns (uint256) {
+        return uint256(Trigonometry.sin(x)/Trigonometry.cos(x));
+    }
+
+    function atan2(int256 x, int256 y) internal pure returns (uint256) {
+
+
 
     }
 
@@ -411,9 +368,7 @@ contract BookingContract {
             !(roomHasOccupant(room)),
             "Room is already checked in by other occupant."
         );
-        // Depot should be half of the day price.
         require(msg.value >= (room.pricePerDay / uint(2)), "Not enough depot.");
-        // Must be in checkin window
         require(
             (block.timestamp >= room.bookings[bookingIndex].startTime) &&
                 (block.timestamp <= room.bookings[bookingIndex].endTime),
