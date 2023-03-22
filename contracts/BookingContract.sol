@@ -394,6 +394,12 @@ contract BookingContract {
         uint distance
     ) public view returns (uint averagedPrice) {}
 
+
+    function computeDistance(int256 lat1, int256 long1, int256 lat2, int256 long2) public returns (uint distanceMeters){
+        
+
+    }
+
     function checkIn(uint roomIndex) public payable roomIndexCheck(roomIndex) {
         Room storage room = rooms[roomIndex];
         uint bookingIndex;
@@ -515,21 +521,5 @@ contract BookingContract {
             }
         }
         return (occupied, occupant);
-    }
-
-    function max(uint a, uint b) public pure returns (uint) {
-        return a >= b ? a : b;
-    }
-
-    function max(int a, int b) public pure returns (int) {
-        return a >= b ? a : b;
-    }
-
-    function min(uint a, uint b) public pure returns (uint) {
-        return a <= b ? a : b;
-    }
-
-    function min(int a, int b) public pure returns (int) {
-        return a <= b ? a : b;
     }
 }
