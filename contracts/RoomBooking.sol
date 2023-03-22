@@ -10,7 +10,41 @@ enum Amenity {
 library BookingLib {
     using PRBMathSD59x18 for int256;
 
-    function atan2(int256 x, int256 y) internal pure returns (uint256) {}
+    function atan2(int256 x, int256 y) internal pure returns (uint256) {
+        // From https://github.com/NovakDistributed/macroverse/blob/master/contracts/RealMath.sol
+        int256 result;
+
+        int256 abs_x = x.abs();
+        int256 abs_y = y.abs();
+
+        if (abs_x > abs_y) {
+            result = atanSmall((abs_y / abs_x));
+        } else {
+            result = (PRBMathSD59x18.pi() / 2) - atanSmall((abs_x / abs_y));
+        }
+
+        if (x < 0) {
+            if (y < 0) {
+                result -= PRBMathSD59x18.pi();
+            } else {
+                result = PRBMathSD59x18.pi() - result;
+            }
+        } else {
+            if (y < 0) {
+                result = -result;
+            }
+        }
+
+        return uint(result);
+    }
+
+    function atanSmall(int256 x) internal pure returns (int256) {
+        // From https://github.com/NovakDistributed/macroverse/blob/master/contracts/RealMath.sol
+        int256 x_squared = x.pow(2);
+        return (((((((((((-12606780422 * x_squared) + 57120178819) *
+            x_squared) - 127245381171) * x_squared) + 212464129393) *
+            x_squared) - 365662383026) * x_squared) + 1099483040474) * x);
+    }
 
     function tangent(uint256 x) internal pure returns (uint256) {
         return uint256(Trigonometry.sin(x) / Trigonometry.cos(x));
