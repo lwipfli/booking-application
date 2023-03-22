@@ -10,10 +10,21 @@ describe("BookingContract", function () {
     const bookingDateTimestamp = new Date("09/19/2022 10:58:13").getTime();
 
     const [owner, otherAccount] = await ethers.getSigners();
-    const BookingContract = await ethers.getContractFactory("BookingContract");
+
+    const Lib = await ethers.getContractFactory("BookingLib");
+    const lib = await Lib.deploy();
+    await lib.deployed();
+
+    const BookingContract = await ethers.getContractFactory("BookingContract", {
+      signer: owner[0],
+      libraries: {
+        BookingLib: lib.address,
+      },
+    });
     provider = ethers.provider;
     const booking = await BookingContract.deploy();
     await booking.deployed();
+
     return { booking, owner, otherAccount, bookingDateTimestamp };
   }
 
