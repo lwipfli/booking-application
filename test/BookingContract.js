@@ -6,6 +6,24 @@ const { time } = require("@nomicfoundation/hardhat-network-helpers");
 const { BigNumber } = require("ethers");
 
 describe("BookingContract", function () {
+  async function deployLibraryTestFixture() {
+    const [owner, otherAccount] = await ethers.getSigners();
+    const Lib = await ethers.getContractFactory("BookingLib");
+    const lib = await Lib.deploy();
+    await lib.deployed();
+    const libraryTestContract = await ethers.getContractFactory("LibraryTest", {
+      signer: owner[0],
+      libraries: {
+        BookingLib: lib.address,
+      },
+    });
+    provider = ethers.provider;
+    const libTest = await libraryTestContract.deploy();
+    await libTest.deployed();
+
+    return { libTest, owner, otherAccount };
+  }
+
   async function deployBasicFixture() {
     const bookingDateTimestamp = new Date("09/19/2022 10:58:13").getTime();
 
@@ -25,7 +43,7 @@ describe("BookingContract", function () {
     const booking = await BookingContract.deploy();
     await booking.deployed();
 
-    return { booking, owner, otherAccount, bookingDateTimestamp };
+    return { booking, owner, otherAccount, bookingDateTimestamp, lib };
   }
 
   async function OneRoomPostedFixture() {
@@ -728,8 +746,93 @@ describe("BookingContract", function () {
     });
   });
 
-  describe("Distance computation", function () {
-    //TODO
+  describe("Library distance computation", function () {
+    it("Formula tests.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+
+      console.log("For point 50,0 and 51, 0:");
+
+      // φ1 should be roughly 0.872664626
+      var phiOne = await libTest.phiRadian(ethers.utils.parseUnits("50", 18));
+      console.log("PhiOne is:", phiOne);
+      expect(phiOne).to.be.lessThanOrEqual(ethers.utils.parseUnits("873", 15));
+      expect(phiOne).to.be.greaterThanOrEqual(
+        ethers.utils.parseUnits("872", 15)
+      );
+
+      // φ2 should be roughly 0.890117919
+      var phiTwo = await libTest.phiRadian(ethers.utils.parseUnits("51", 18));
+      console.log("PhiTwo is:", phiTwo);
+      expect(phiTwo).to.be.lessThanOrEqual(ethers.utils.parseUnits("891", 15));
+      expect(phiTwo).to.be.greaterThanOrEqual(
+        ethers.utils.parseUnits("890", 15)
+      );
+
+      var deltaPhi = await libTest.delta(
+        ethers.utils.parseUnits("50", 18),
+        ethers.utils.parseUnits("51", 18)
+      );
+
+      // Δφ should be roughly 0.017453293
+      console.log("DeltaPhi is:", deltaPhi);
+      expect(deltaPhi).to.be.lessThanOrEqual(
+        ethers.utils.parseUnits("175", 14)
+      );
+      expect(deltaPhi).to.be.greaterThanOrEqual(
+        ethers.utils.parseUnits("174", 14)
+      );
+
+      //Δλ should be 0
+      var deltaLambda = await libTest.delta(0, 0);
+      console.log("DeltaLambda is:", deltaLambda);
+      expect(deltaLambda).to.be.lessThanOrEqual(0);
+      expect(deltaLambda).to.be.greaterThanOrEqual(0);
+
+      // CalculateA
+      console.log("Calculating A:");
+      // Term 1: Math.sin(Δφ/2)
+
+      var halfDeltaPhi = await libTest.halfRadian(
+        ethers.utils.parseUnits("17453292519943295", 0)
+      );
+
+      console.log("Half of delta phi is:", halfDeltaPhi);
+      expect(halfDeltaPhi).to.be.lessThanOrEqual(
+        ethers.utils.parseUnits("873", 13)
+      );
+      expect(halfDeltaPhi).to.be.greaterThanOrEqual(
+        ethers.utils.parseUnits("872", 13)
+      );
+
+      // Sin Δφ/2
+      var sinHalfDeltaPhi = await libTest.sin(halfDeltaPhi);
+      var uintSinHalfDeltaPhi = await libTest.sinUint(
+        ethers.utils.parseUnits("1", 18)
+      );
+      console.log("Sin half of delta phi is:", sinHalfDeltaPhi);
+      console.log("Uint Sin half of delt is:", uintSinHalfDeltaPhi);
+      var term1 = await libTest.calculateTerm1(
+        ethers.utils.parseUnits("17453292519943295", 0)
+      );
+
+      //Term 1 should be roughly 0.000152309
+      console.log("Term 1 is:", term1);
+      expect(term1).to.be.greaterThanOrEqual(
+        ethers.utils.parseUnits("152309", 9)
+      );
+      /** 
+      expect(
+        await libTest.computeDistanceHaversine(
+          ethers.utils.parseUnits("50", 18),
+          0,
+          ethers.utils.parseUnits("51", 18),
+          0
+        )
+      ).to.be.lessThanOrEqual(111300);
+      */
+    });
   });
 
   describe("Price adaption", function () {

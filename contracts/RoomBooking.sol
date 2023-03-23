@@ -50,39 +50,76 @@ library BookingLib {
         return uint256(Trigonometry.sin(x) / Trigonometry.cos(x));
     }
 
-    function computeDistance(
+    function computeDistanceHaversine(
         int256 lat1,
         int256 long1,
         int256 lat2,
         int256 long2
-    ) public returns (uint distanceMeters) {
+    ) public pure returns (int256 distanceMeters) {
         // From https://www.movable-type.co.uk/scripts/latlong.html
-        uint256 R = 6371000;
-        int256 phi1 = (lat1 * int(Trigonometry.PI)) / 180;
-        if (phi1 < 0) {
-            phi1 += 360;
-        }
-        int256 phi2 = (lat2 * int(Trigonometry.PI)) / 180;
-        if (phi2 < 0) {
-            phi2 += 360;
-        }
-        int256 deltaPhi = ((lat2 - lat1) * int(Trigonometry.PI)) / 180;
+
+        int256 R = 6371000000000000000000000;
+        int256 phi1 = (lat1 * int(Trigonometry.PI)) / 180000000000000000000;
+
+        int256 phi2 = (lat2 * int(Trigonometry.PI)) / 180000000000000000000;
+
+        int256 deltaPhi = (((lat2 - lat1).abs() * int(Trigonometry.PI)) /
+            180000000000000000000);
+
+        int256 deltaLambda = (((long2 - long1).abs() * int(Trigonometry.PI)) /
+            180000000000000000000);
+
+        int256 a = calculateA(phi1, phi2, deltaPhi, deltaLambda);
+
+        int256 c = 2000000000000000000 *
+            int(atan2(a.sqrt(), (1000000000000000000 - a).sqrt()));
+        return ((R * c) / 1000000000000000000);
+    }
+
+    function calculateA(
+        int256 phiOne,
+        int256 phiTwo,
+        int256 deltaPhi,
+        int256 deltaLambda
+    ) public pure returns (int256) {
+        // Math.sin(Δφ/2)
+        int256 term_1;
+        // sin(-φ)=-sin(φ)
         if (deltaPhi < 0) {
-            deltaPhi += 360;
+            term_1 =
+                Trigonometry.sin(uint((-1 * deltaPhi) / 2000000000000000000)) *
+                -1;
+        } else {
+            term_1 = Trigonometry.sin(uint(deltaPhi / 2000000000000000000));
         }
-        int256 deltaLambda = ((long2 - long1) * int(Trigonometry.PI)) / 180;
+        // Math.cos(φ1)
+        int256 term_2;
+        // cos(-φ)=cos(φ)
+        if (phiOne < 0) {
+            term_2 = Trigonometry.cos(uint(-1 * phiOne));
+        } else {
+            term_2 = Trigonometry.cos(uint(phiOne));
+        }
+        // Math.cos(φ2)
+        int256 term_3;
+        if (phiTwo < 0) {
+            term_3 = Trigonometry.cos(uint(-1 * phiTwo));
+        } else {
+            term_3 = Trigonometry.cos(uint(phiTwo));
+        }
+        // Math.sin(Δλ/2)
+        int256 term_4;
         if (deltaLambda < 0) {
-            deltaLambda += 360;
+            term_4 =
+                Trigonometry.sin(
+                    uint((-1 * deltaLambda) / 2000000000000000000)
+                ) *
+                -1;
+        } else {
+            term_4 = Trigonometry.sin(uint(deltaLambda / 2000000000000000000));
         }
 
-        int256 a = (Trigonometry.sin(uint(deltaPhi / 2)) *
-            Trigonometry.sin(uint(deltaPhi / 2))) +
-            (Trigonometry.cos(uint(phi1)) *
-                Trigonometry.cos(uint(phi2)) *
-                Trigonometry.sin(uint(deltaPhi / 2)) *
-                Trigonometry.sin(uint(deltaPhi / 2)));
-        uint256 c = 2 * atan2(a.sqrt(), (PRBMathSD59x18.SCALE - a).sqrt());
-        return uint(R * c);
+        return (term_1 * term_1) + (term_2 * term_3 * term_4 * term_4);
     }
 
     function convertInt256ToString(
