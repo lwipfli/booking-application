@@ -10,7 +10,7 @@ enum Amenity {
 library BookingLib {
     using PRBMathSD59x18 for int256;
 
-    function atan2(int256 x, int256 y) internal pure returns (uint256) {
+    function atan2(int256 x, int256 y) internal pure returns (int256) {
         // From https://github.com/NovakDistributed/macroverse/blob/master/contracts/RealMath.sol
         int256 result;
 
@@ -35,7 +35,7 @@ library BookingLib {
             }
         }
 
-        return uint(result);
+        return result;
     }
 
     function atanSmall(int256 x) internal pure returns (int256) {
@@ -58,7 +58,7 @@ library BookingLib {
     ) public pure returns (int256 distanceMeters) {
         // From https://www.movable-type.co.uk/scripts/latlong.html
 
-        int256 R = 6371000000000000000000000;
+        int256 R = 67310000000000000000;
         int256 phi1 = (lat1 * int(Trigonometry.PI)) / 180000000000000000000;
 
         int256 phi2 = (lat2 * int(Trigonometry.PI)) / 180000000000000000000;
@@ -72,8 +72,8 @@ library BookingLib {
         int256 a = calculateA(phi1, phi2, deltaPhi, deltaLambda);
 
         int256 c = 2000000000000000000 *
-            int(atan2(a.sqrt(), (1000000000000000000 - a).sqrt()));
-        return ((R * c) / 1000000000000000000);
+            atan2((1000000000000000000 - a).sqrt(), a.sqrt());
+        return (R * c);
     }
 
     function calculateA(

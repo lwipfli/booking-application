@@ -36,16 +36,49 @@ contract LibraryTest {
         return term_1;
     }
 
+    function calculateTerm2(int256 phiOne) public view returns (int256) {
+        // Math.cos(φ1)
+        int256 term_2;
+        // cos(-φ)=cos(φ)
+        if (phiOne < 0) {
+            term_2 = Trigonometry.cos(uint(-1 * phiOne));
+        } else {
+            term_2 = Trigonometry.cos(uint(phiOne));
+        }
+        return term_2;
+    }
+
     function halfRadian(int256 radian) public view returns (int256) {
         return (radian / 2);
+    }
+
+    function cos(int256 radian) public view returns (int256) {
+        return Trigonometry.cos(uint(radian));
     }
 
     function sin(int256 radian) public view returns (int256) {
         return Trigonometry.sin(uint(radian));
     }
 
-    function sinUint(uint256 radian) public view returns (int256) {
-        return Trigonometry.sin(radian);
+    function getPi() public view returns (uint256) {
+        return Trigonometry.PI;
+    }
+
+    function atan2(int256 x, int256 y) public pure returns (int256) {
+        return BookingLib.atan2(y, x);
+    }
+
+    function c(int256 x) public pure returns (int256) {
+        return
+            (BookingLib.atan2((x).sqrt(), (1000000000000000000 - x).sqrt())) *
+            2000000000000000000;
+    }
+
+    function dFromA(int256 x) public pure returns (int256) {
+        return
+            (BookingLib.atan2((x).sqrt(), (1000000000000000000 - x).sqrt())) *
+            2000000000000000000 *
+            6731000000000000000;
     }
 
     function calculateA(
@@ -91,6 +124,6 @@ contract LibraryTest {
             term_4 = Trigonometry.sin(uint(deltaLambda / 2000000000000000000));
         }
 
-        return (term_1 * term_1) + (term_2 * term_3 * term_4 * term_4);
+        return (term_1.pow(2)) + (term_2 * term_3 * term_4.pow(2));
     }
 }

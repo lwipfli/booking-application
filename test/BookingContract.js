@@ -747,7 +747,7 @@ describe("BookingContract", function () {
   });
 
   describe("Library distance computation", function () {
-    it("Formula tests.", async function () {
+    it("Formula test no longitude, both values positive.", async function () {
       const { libTest, owner, otherAccount } = await loadFixture(
         deployLibraryTestFixture
       );
@@ -794,44 +794,101 @@ describe("BookingContract", function () {
       console.log("Calculating A:");
       // Term 1: Math.sin(Δφ/2)
 
+      // Should be rougly 0.008726646
       var halfDeltaPhi = await libTest.halfRadian(
         ethers.utils.parseUnits("17453292519943295", 0)
       );
 
       console.log("Half of delta phi is:", halfDeltaPhi);
       expect(halfDeltaPhi).to.be.lessThanOrEqual(
-        ethers.utils.parseUnits("873", 13)
+        ethers.utils.parseUnits("8726647", 9)
       );
       expect(halfDeltaPhi).to.be.greaterThanOrEqual(
-        ethers.utils.parseUnits("872", 13)
+        ethers.utils.parseUnits("8726646", 9)
       );
 
-      // Sin Δφ/2
+      // Term1 = Sin Δφ/2 should be 0.008726535
       var sinHalfDeltaPhi = await libTest.sin(halfDeltaPhi);
-      var uintSinHalfDeltaPhi = await libTest.sinUint(
-        ethers.utils.parseUnits("1", 18)
+      expect(sinHalfDeltaPhi).to.be.lessThanOrEqual(
+        ethers.utils.parseUnits("87265", 11)
       );
-      console.log("Sin half of delta phi is:", sinHalfDeltaPhi);
-      console.log("Uint Sin half of delt is:", uintSinHalfDeltaPhi);
+      expect(sinHalfDeltaPhi).to.be.greaterThanOrEqual(
+        ethers.utils.parseUnits("87264", 11)
+      );
+
       var term1 = await libTest.calculateTerm1(
         ethers.utils.parseUnits("17453292519943295", 0)
       );
 
-      //Term 1 should be roughly 0.000152309
+      expect(term1).to.be.equal(sinHalfDeltaPhi);
       console.log("Term 1 is:", term1);
-      expect(term1).to.be.greaterThanOrEqual(
-        ethers.utils.parseUnits("152309", 9)
+
+      // Term 2 Math.cos(φ1) should roughly be 0.64278761
+      var term2 = await libTest.calculateTerm2(
+        ethers.utils.parseUnits("872664625997164788", 0)
       );
-      /** 
-      expect(
-        await libTest.computeDistanceHaversine(
-          ethers.utils.parseUnits("50", 18),
-          0,
-          ethers.utils.parseUnits("51", 18),
-          0
-        )
-      ).to.be.lessThanOrEqual(111300);
-      */
+      console.log("Term 2 is:", term2);
+      expect(term2).to.be.lessThanOrEqual(ethers.utils.parseUnits("64279", 13));
+      expect(term2).to.be.greaterThanOrEqual(
+        ethers.utils.parseUnits("64277", 13)
+      );
+
+      // Term 3 Math.cos(φ2) should roughly be 0.629320391
+      var term3 = await libTest.calculateTerm2(phiTwo);
+      console.log("Term 3 is:", term3);
+      expect(term3).to.be.lessThanOrEqual(ethers.utils.parseUnits("62932", 13));
+      expect(term3).to.be.greaterThanOrEqual(
+        ethers.utils.parseUnits("62931", 13)
+      );
+
+      // Term 4 Math.cos(φ2) should roughly be 0
+      var term4 = await libTest.calculateTerm1(deltaLambda);
+      console.log("Term 4 is:", term4);
+      expect(term4).to.be.equal(0);
+
+      var a = await libTest.calculateA(phiOne, phiTwo, deltaPhi, deltaLambda);
+      // should be roughly 0.000076152 but seems to be 0 due to computation perhaps.
+      console.log("a is:", a);
+      var distance = await libTest.computeDistanceHaversine(
+        ethers.utils.parseUnits("50", 18),
+        0,
+        ethers.utils.parseUnits("51", 18),
+        0
+      );
+
+      var c = await libTest.c(a);
+      console.log("C is: ", c);
+      var c = await libTest.dFromA(a);
+      console.log("D from A is: ", c);
+
+      console.log("Distance is: ", distance);
+    });
+  });
+
+  describe("Trigonometry tests", function () {
+    it("Trigonometry sin should be zero for Pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var PI = await libTest.getPi();
+      var sinPI = await libTest.sin(PI);
+      expect(sinPI).to.be.equal(0);
+    });
+
+    it("Atan2 calculation tests.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var atan = await libTest.atan2(0, ethers.utils.parseUnits("1", 18));
+      console.log("Atan2 0,1 is: ", atan);
+      expect(atan).to.be.equal(0);
+      var atan = await libTest.atan2(ethers.utils.parseUnits("1", 18), 0);
+      expect(atan).to.be.lessThanOrEqual(ethers.utils.parseUnits("16", 17), 0);
+      expect(atan).to.be.greaterThanOrEqual(
+        ethers.utils.parseUnits("15", 17),
+        0
+      );
+      console.log("Atan2 1,0 is: ", atan);
     });
   });
 

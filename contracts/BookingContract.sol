@@ -315,7 +315,58 @@ contract BookingContract {
         int256 latitude,
         int256 longitude,
         uint distance
-    ) public view returns (uint averagedPrice) {}
+    ) public view returns (uint averagedPrice) {
+        uint number = 0;
+        uint price = 0;
+        for (uint i = 0; i > rooms.length; i++) {
+            Room memory room = rooms[i];
+            /*
+            if (
+                BookingLib.computeDistanceHaversine(
+                    latitude,
+                    longitude,
+                    room.position.latitude,
+                    room.position.longitude
+                ) <= distance
+            ) {
+                number++;
+                price += room.pricePerDay;
+            }
+            */
+        }
+        if (number == 0) {
+            return 0;
+        }
+        return (price / number);
+    }
+
+    function searchForRooms(
+        int256 latitude,
+        int256 longitude,
+        uint distance,
+        uint range
+    ) public view returns (uint[] memory roomIndices) {
+        uint[] memory indexes = new uint[](range);
+        uint fill = 0;
+        for (uint i = 0; i < rooms.length; i++) {
+            if (fill == range) {
+                break;
+            }
+            Room memory room = rooms[i];
+            if (
+                (BookingLib.computeDistanceHaversine(
+                    latitude,
+                    longitude,
+                    room.position.latitude,
+                    room.position.longitude
+                ) <= int(distance))
+            ) {
+                indexes[fill] = i;
+                fill++;
+            }
+        }
+        return indexes;
+    }
 
     function checkIn(uint roomIndex) public payable roomIndexCheck(roomIndex) {
         Room storage room = rooms[roomIndex];
