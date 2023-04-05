@@ -217,14 +217,11 @@ describe("BookingContract", function () {
         )
       ).to.equal("50.000000000000123000");
 
-      // Cannot be tested due to Javascript limitations.
-      /*
       expect(
         await booking.convertInt256ToString(
-          ethers.utils.parseUnits("50045678901234567000", 0) * -1
+          BigNumber.from("-50045678901234567000")
         )
       ).to.equal("-50.045678901234567000");
-          */
     });
   });
 
@@ -882,13 +879,20 @@ describe("BookingContract", function () {
       var atan = await libTest.atan2(0, ethers.utils.parseUnits("1", 18));
       console.log("Atan2 0,1 is: ", atan);
       expect(atan).to.be.equal(0);
-      var atan = await libTest.atan2(ethers.utils.parseUnits("1", 18), 0);
-      expect(atan).to.be.lessThanOrEqual(ethers.utils.parseUnits("16", 17), 0);
+      var atan = await libTest.atan2(BigNumber.from("1000000000000000000"), 0);
+      expect(atan).to.be.lessThanOrEqual(BigNumber.from("1600000000000000000"));
       expect(atan).to.be.greaterThanOrEqual(
-        ethers.utils.parseUnits("15", 17),
-        0
+        BigNumber.from("1500000000000000000")
       );
       console.log("Atan2 1,0 is: ", atan);
+    });
+  });
+
+  describe("BigNumbers tests", function () {
+    it("Trigonometry sin should be zero for Pi.", async function () {
+      expect(BigNumber.from(42)).to.be.equal(42);
+      expect(BigNumber.from("42").mul(-1)).to.be.equal(-42);
+      expect(BigNumber.from("-42")).to.be.equal(-42);
     });
   });
 
