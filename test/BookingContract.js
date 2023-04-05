@@ -4,6 +4,8 @@ const { ethers } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 const { BigNumber } = require("ethers");
+const { BigInt } = require("ethers");
+//const { BigNumber }= require('bignumber.js');
 
 describe("BookingContract", function () {
   async function deployLibraryTestFixture() {
@@ -860,6 +862,9 @@ describe("BookingContract", function () {
 
       console.log("Distance is: ", distance);
     });
+
+
+
   });
 
   describe("Trigonometry tests", function () {
@@ -885,6 +890,15 @@ describe("BookingContract", function () {
         BigNumber.from("1500000000000000000")
       );
       console.log("Atan2 1,0 is: ", atan);
+      /*
+      var atan = await libTest.atan2(BigNumber.from('1e18'), 0);
+      expect(atan).to.be.lessThanOrEqual(ethers.utils.parseUnits("16", 17), 0);
+      expect(atan).to.be.greaterThanOrEqual(
+        ethers.utils.parseUnits("15", 17),
+        0
+      );
+      */
+
     });
   });
 
@@ -895,6 +909,52 @@ describe("BookingContract", function () {
       expect(BigNumber.from("-42")).to.be.equal(-42);
     });
   });
+
+  /*
+  describe("Haversinde distance tests", function () {
+    it("50,10 , 51,15 should be distance of roughly 370.6 km.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      expect(BigNumber('50.0e18')).to.be.equal(ethers.utils.parseUnits("50", 18));
+
+      expect(await libTest.computeDistanceHaversine(BigNumber('50.0e18'),BigNumber('10.0e18'),BigNumber('51.0e18'),BigNumber('15.0e18'))).to.be.equals(BigNumber('370600.0e18'));
+    });
+
+    it("-50,-10 , 51,15 should be distance of roughly 11480 km.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+
+      expect(await libTest.computeDistanceHaversine(BigNumber('-50.0e18'),BigNumber('-10.0e18'),ethers.utils.parseUnits("51", 18),ethers.utils.parseUnits("15", 18))).to.be.equals(ethers.utils.parseUnits("11480000", 18));
+    });
+
+    it("50,10 , -51,-15 should be distance of roughly 11480 km.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+
+      expect(await libTest.computeDistanceHaversine(ethers.utils.parseUnits("50", 18),ethers.utils.parseUnits("10", 18),-1*ethers.utils.parseUnits("51", 18),-1*ethers.utils.parseUnits("15", 18))).to.be.equals(ethers.utils.parseUnits("11480000", 18));
+    });
+
+    it("-50,-10 , -51,-15 should be distance of roughly 11480 km.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+
+      expect(await libTest.computeDistanceHaversine(-1*ethers.utils.parseUnits("50", 18),-1*ethers.utils.parseUnits("10", 18),-1*ethers.utils.parseUnits("51", 18),-1*ethers.utils.parseUnits("15", 18))).to.be.equals(ethers.utils.parseUnits("370600", 18));
+    });
+
+    it("0, 180 , 0,-180 should be very small distance.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+
+      expect(await libTest.computeDistanceHaversine(ethers.utils.parseUnits("180", 18),0,-1*ethers.utils.parseUnits("180", 18),0)).to.be.lessThanOrEqual(ethers.utils.parseUnits("1", 18));
+    });
+
+  });
+  */
 
   describe("Price adaption", function () {
     //TODO
