@@ -754,7 +754,9 @@ describe("BookingContract", function () {
       console.log("For point 50,0 and 51, 0:");
 
       // φ1 should be roughly 0.872664626
-      var phiOne = await libTest.phiRadian(ethers.utils.parseUnits("50", 18));
+      var phiOne = await libTest.phiRadian(
+        BigNumber.from("50000000000000000000")
+      );
       console.log("PhiOne is:", phiOne);
       expect(phiOne).to.be.lessThanOrEqual(ethers.utils.parseUnits("873", 15));
       expect(phiOne).to.be.greaterThanOrEqual(
@@ -862,9 +864,6 @@ describe("BookingContract", function () {
 
       console.log("Distance is: ", distance);
     });
-
-
-
   });
 
   describe("Trigonometry tests", function () {
@@ -877,11 +876,152 @@ describe("BookingContract", function () {
       expect(sinPI).to.be.equal(0);
     });
 
+    it("Trigonometry Pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      expect(await libTest.getPi()).to.be.equal(
+        BigNumber.from("3141592653589793238")
+      );
+    });
+
+    it("Trigonometry half Pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      expect(await libTest.getHalfPi()).to.be.equal(
+        BigNumber.from("1570796326794896619")
+      );
+    });
+
+    it("Trigonometry two Pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      expect(await libTest.getTwoPi()).to.be.equal(
+        BigNumber.from("6283185307179586476")
+      );
+    });
+
+    it("Trigonometry sin should be zero for zero.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      expect(await libTest.sin(0)).to.be.equal(0);
+    });
+
+    it("Trigonometry sin of one.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var sinOne = await libTest.sin(BigNumber.from("1000000000000000000"));
+      expect(sinOne).to.be.within(
+        BigNumber.from("841400000000000000"),
+        BigNumber.from("841500000000000000")
+      );
+    });
+
+    it("Trigonometry sin of two.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var sinTwo = await libTest.sin(BigNumber.from("2000000000000000000"));
+      expect(sinTwo).to.be.within(
+        BigNumber.from("909200000000000000"),
+        BigNumber.from("909300000000000000")
+      );
+    });
+
+    it("Trigonometry sin of half pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var sinHalfPi = await libTest.sin(libTest.getHalfPi());
+      expect(sinHalfPi).to.be.equal(BigNumber.from("1000000000000000000"));
+    });
+
+    it("Trigonometry sin of tweltht pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var sinTwelthtPi = await libTest.sin(libTest.getFractionPi(12));
+      expect(sinTwelthtPi).to.be.within(
+        BigNumber.from("258800000000000000"),
+        BigNumber.from("258900000000000000")
+      );
+    });
+
+    it("Trigonometry sin of sixtht pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var sinSixthtPi = await libTest.sin(libTest.getFractionPi(6));
+      expect(sinSixthtPi).to.be.within(
+        BigNumber.from("499900000000000000"),
+        BigNumber.from("500100000000000000")
+      );
+    });
+
+    it("Trigonometry sin of fourtht pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var sinFourthtPi = await libTest.sin(libTest.getFractionPi(4));
+      expect(sinFourthtPi).to.be.within(
+        BigNumber.from("707100000000000000"),
+        BigNumber.from("707200000000000000")
+      );
+    });
+
+    it("Trigonometry sin of thirdt pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var sinThirdtPi = await libTest.sin(libTest.getFractionPi(3));
+      expect(sinThirdtPi).to.be.within(
+        BigNumber.from("866000000000000000"),
+        BigNumber.from("866100000000000000")
+      );
+    });
+
+    it("Trigonometry sin of 5/12 pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var sinFractPi = await libTest.sin(libTest.getFiveTwelthtPi());
+      expect(sinFractPi).to.be.within(
+        BigNumber.from("965900000000000000"),
+        BigNumber.from("966000000000000000")
+      );
+    });
+
+    it("Trigonometry sin of 5/12 pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var sinFractPi = await libTest.sin(libTest.getFiveTwelthtPi());
+      expect(sinFractPi).to.be.within(
+        BigNumber.from("965900000000000000"),
+        BigNumber.from("966000000000000000")
+      );
+    });
+
+    it("Trigonometry sin of 3/2 pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var sinFractPi = await libTest.sin(libTest.getThreeHalfPi());
+      expect(sinFractPi).to.be.within(
+        BigNumber.from("-1001000000000000000"),
+        BigNumber.from("-999900000000000000")
+      );
+    });
+
     it("Atan2 calculation tests.", async function () {
       const { libTest, owner, otherAccount } = await loadFixture(
         deployLibraryTestFixture
       );
-      var atan = await libTest.atan2(0, ethers.utils.parseUnits("1", 18));
+      var atan = await libTest.atan2(0, BigNumber.from("1000000000000000000"));
       console.log("Atan2 0,1 is: ", atan);
       expect(atan).to.be.equal(0);
       var atan = await libTest.atan2(BigNumber.from("1000000000000000000"), 0);
@@ -898,7 +1038,6 @@ describe("BookingContract", function () {
         0
       );
       */
-
     });
   });
 

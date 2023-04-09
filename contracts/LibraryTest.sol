@@ -64,6 +64,26 @@ contract LibraryTest {
         return Trigonometry.PI;
     }
 
+    function getTwoPi() public view returns (uint256) {
+        return Trigonometry.TWO_PI;
+    }
+
+    function getHalfPi() public view returns (uint256) {
+        return Trigonometry.PI_OVER_TWO;
+    }
+
+    function getThreeHalfPi() public view returns (uint256) {
+        return (Trigonometry.PI_OVER_TWO) * 3;
+    }
+
+    function getFiveTwelthtPi() public view returns (uint256) {
+        return (Trigonometry.PI / 12) * 5;
+    }
+
+    function getFractionPi(uint fraction) public view returns (uint256) {
+        return (Trigonometry.PI / fraction);
+    }
+
     function atan2(int256 x, int256 y) public pure returns (int256) {
         return BookingLib.atan2(y, x);
     }
