@@ -85,7 +85,7 @@ contract LibraryTest {
     }
 
     function atan2(int256 x, int256 y) public pure returns (int256) {
-        return BookingLib.atan2(y, x);
+        return BookingLib.atan2(x, y);
     }
 
     function c(int256 x) public pure returns (int256) {

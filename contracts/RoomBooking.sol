@@ -14,13 +14,15 @@ library BookingLib {
         // From https://github.com/NovakDistributed/macroverse/blob/master/contracts/RealMath.sol
         int256 result;
 
-        int256 abs_x = x.abs();
-        int256 abs_y = y.abs();
+        int256 abs_x = y.abs();
+        int256 abs_y = x.abs();
 
         if (abs_x > abs_y) {
             result = atanSmall((abs_y / abs_x));
         } else {
-            result = (PRBMathSD59x18.pi() / 2) - atanSmall((abs_x / abs_y));
+            result =
+                (PRBMathSD59x18.pi() / PRBMathSD59x18.fromInt(2)) -
+                atanSmall((abs_x / abs_y));
         }
 
         if (x < 0) {
@@ -41,9 +43,10 @@ library BookingLib {
     function atanSmall(int256 x) internal pure returns (int256) {
         // From https://github.com/NovakDistributed/macroverse/blob/master/contracts/RealMath.sol
         int256 x_squared = x.pow(2);
-        return (((((((((((-12606780422 * x_squared) + 57120178819) *
-            x_squared) - 127245381171) * x_squared) + 212464129393) *
-            x_squared) - 365662383026) * x_squared) + 1099483040474) * x);
+        return (((((((((((-12606780422000000 * x_squared) + 57120178819000000) *
+            x_squared) - 127245381171000000) * x_squared) +
+            212464129393000000) * x_squared) - 365662383026000000) *
+            x_squared) + 1099483040474000000) * x);
     }
 
     function tangent(uint256 x) internal pure returns (uint256) {
@@ -58,21 +61,23 @@ library BookingLib {
     ) public pure returns (int256 distanceMeters) {
         // From https://www.movable-type.co.uk/scripts/latlong.html
 
-        int256 R = 67310000000000000000;
-        int256 phi1 = (lat1 * int(Trigonometry.PI)) / 180000000000000000000;
+        int256 R = PRBMathSD59x18.fromInt(6371000);
+        int256 phi1 = (lat1 * PRBMathSD59x18.pi()) /
+            PRBMathSD59x18.fromInt(180);
 
-        int256 phi2 = (lat2 * int(Trigonometry.PI)) / 180000000000000000000;
+        int256 phi2 = (lat2 * PRBMathSD59x18.pi()) /
+            PRBMathSD59x18.fromInt(180);
 
-        int256 deltaPhi = (((lat2 - lat1).abs() * int(Trigonometry.PI)) /
-            180000000000000000000);
+        int256 deltaPhi = (((lat2 - lat1).abs() * PRBMathSD59x18.pi()) /
+            PRBMathSD59x18.fromInt(180));
 
-        int256 deltaLambda = (((long2 - long1).abs() * int(Trigonometry.PI)) /
-            180000000000000000000);
+        int256 deltaLambda = (((long2 - long1).abs() * PRBMathSD59x18.pi()) /
+            PRBMathSD59x18.fromInt(180));
 
         int256 a = calculateA(phi1, phi2, deltaPhi, deltaLambda);
 
-        int256 c = 2000000000000000000 *
-            atan2((1000000000000000000 - a).sqrt(), a.sqrt());
+        int256 c = PRBMathSD59x18.fromInt(2) *
+            atan2((PRBMathSD59x18.fromInt(1) - a).sqrt(), a.sqrt());
         return (R * c);
     }
 
@@ -87,23 +92,34 @@ library BookingLib {
         // sin(-φ)=-sin(φ)
         if (deltaPhi < 0) {
             term_1 =
-                Trigonometry.sin(uint((-1 * deltaPhi) / 2000000000000000000)) *
+                Trigonometry.sin(
+                    uint(
+                        (PRBMathSD59x18.fromInt(-1) * deltaPhi) /
+                            PRBMathSD59x18.fromInt(2)
+                    )
+                ) *
                 -1;
         } else {
-            term_1 = Trigonometry.sin(uint(deltaPhi / 2000000000000000000));
+            term_1 = Trigonometry.sin(
+                uint(deltaPhi / PRBMathSD59x18.fromInt(2))
+            );
         }
         // Math.cos(φ1)
         int256 term_2;
         // cos(-φ)=cos(φ)
         if (phiOne < 0) {
-            term_2 = Trigonometry.cos(uint(-1 * phiOne));
+            term_2 = Trigonometry.cos(
+                uint(PRBMathSD59x18.fromInt(-1) * phiOne)
+            );
         } else {
             term_2 = Trigonometry.cos(uint(phiOne));
         }
         // Math.cos(φ2)
         int256 term_3;
         if (phiTwo < 0) {
-            term_3 = Trigonometry.cos(uint(-1 * phiTwo));
+            term_3 = Trigonometry.cos(
+                uint(PRBMathSD59x18.fromInt(-1) * phiTwo)
+            );
         } else {
             term_3 = Trigonometry.cos(uint(phiTwo));
         }
@@ -112,11 +128,16 @@ library BookingLib {
         if (deltaLambda < 0) {
             term_4 =
                 Trigonometry.sin(
-                    uint((-1 * deltaLambda) / 2000000000000000000)
+                    uint(
+                        (PRBMathSD59x18.fromInt(-1) * deltaLambda) /
+                            PRBMathSD59x18.fromInt(2)
+                    )
                 ) *
                 -1;
         } else {
-            term_4 = Trigonometry.sin(uint(deltaLambda / 2000000000000000000));
+            term_4 = Trigonometry.sin(
+                uint(deltaLambda / PRBMathSD59x18.fromInt(2))
+            );
         }
 
         return (term_1 * term_1) + (term_2 * term_3 * term_4 * term_4);

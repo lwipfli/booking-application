@@ -995,17 +995,6 @@ describe("BookingContract", function () {
       );
     });
 
-    it("Trigonometry sin of 5/12 pi.", async function () {
-      const { libTest, owner, otherAccount } = await loadFixture(
-        deployLibraryTestFixture
-      );
-      var sinFractPi = await libTest.sin(libTest.getFiveTwelthtPi());
-      expect(sinFractPi).to.be.within(
-        BigNumber.from("965900000000000000"),
-        BigNumber.from("966000000000000000")
-      );
-    });
-
     it("Trigonometry sin of 3/2 pi.", async function () {
       const { libTest, owner, otherAccount } = await loadFixture(
         deployLibraryTestFixture
@@ -1017,27 +1006,130 @@ describe("BookingContract", function () {
       );
     });
 
-    it("Atan2 calculation tests.", async function () {
+    it("Trigonometry cos of zero.", async function () {
       const { libTest, owner, otherAccount } = await loadFixture(
         deployLibraryTestFixture
       );
-      var atan = await libTest.atan2(0, BigNumber.from("1000000000000000000"));
-      console.log("Atan2 0,1 is: ", atan);
-      expect(atan).to.be.equal(0);
-      var atan = await libTest.atan2(BigNumber.from("1000000000000000000"), 0);
-      expect(atan).to.be.lessThanOrEqual(BigNumber.from("1600000000000000000"));
-      expect(atan).to.be.greaterThanOrEqual(
-        BigNumber.from("1500000000000000000")
+      var cosFractPi = await libTest.cos(0);
+      expect(cosFractPi).to.be.equal(BigNumber.from("1000000000000000000"));
+    });
+
+    it("Trigonometry cos of one.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
       );
-      console.log("Atan2 1,0 is: ", atan);
-      /*
-      var atan = await libTest.atan2(BigNumber.from('1e18'), 0);
-      expect(atan).to.be.lessThanOrEqual(ethers.utils.parseUnits("16", 17), 0);
-      expect(atan).to.be.greaterThanOrEqual(
-        ethers.utils.parseUnits("15", 17),
+      var cosFractPi = await libTest.cos(BigNumber.from("1000000000000000000"));
+      expect(cosFractPi).to.be.within(
+        BigNumber.from("540300000000000000"),
+        BigNumber.from("540310000000000000")
+      );
+    });
+
+    it("Trigonometry cos of two.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var cosFractPi = await libTest.cos(BigNumber.from("2000000000000000000"));
+      expect(cosFractPi).to.be.within(
+        BigNumber.from("-416150000000000000"),
+        BigNumber.from("-416140000000000000")
+      );
+    });
+
+    it("Trigonometry cos of half pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var cosFractPi = await libTest.cos(libTest.getHalfPi());
+      expect(cosFractPi).to.be.equal(0);
+    });
+
+    it("Trigonometry cos of tweltht pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var cosFractPi = await libTest.cos(libTest.getFractionPi(12));
+      expect(cosFractPi).to.be.within(
+        BigNumber.from("965920000000000000"),
+        BigNumber.from("965930000000000000")
+      );
+    });
+
+    it("Trigonometry cos of sixtht pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var cosFractPi = await libTest.cos(libTest.getFractionPi(6));
+      expect(cosFractPi).to.be.within(
+        BigNumber.from("866020000000000000"),
+        BigNumber.from("866030000000000000")
+      );
+    });
+
+    it("Trigonometry cos of fourtht pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var cosFractPi = await libTest.cos(libTest.getFractionPi(4));
+      expect(cosFractPi).to.be.within(
+        BigNumber.from("707100000000000000"),
+        BigNumber.from("707110000000000000")
+      );
+    });
+
+    it("Trigonometry cos of third pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var cosFractPi = await libTest.cos(libTest.getFractionPi(3));
+      expect(cosFractPi).to.be.within(
+        BigNumber.from("499990000000000000"),
+        BigNumber.from("500010000000000000")
+      );
+    });
+
+    it("Trigonometry cos of 5/12 pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var cosFractPi = await libTest.cos(libTest.getFiveTwelthtPi());
+      expect(cosFractPi).to.be.within(
+        BigNumber.from("258810000000000000"),
+        BigNumber.from("258820000000000000")
+      );
+    });
+
+    it("Trigonometry cos of 3/2 pi.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var cosFractPi = await libTest.cos(libTest.getThreeHalfPi());
+      expect(cosFractPi).to.be.equal(0);
+    });
+
+    it("Atan2 values x:0 and y:1.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var atan2Value = await libTest.atan2(
+        0,
+        BigNumber.from("1000000000000000000")
+      );
+      expect(atan2Value).to.be.equal(0);
+    });
+
+    it("Atan2 values x:1 and y:0.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+      var atan2Value = await libTest.atan2(
+        BigNumber.from("1000000000000000000"),
         0
       );
-      */
+      expect(atan2Value).to.be.within(
+        BigNumber.from("1570700000000000000"),
+        BigNumber.from("1570800000000000000")
+      );
     });
   });
 
