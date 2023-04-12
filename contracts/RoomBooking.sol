@@ -2,6 +2,8 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./trigonometry/Trigonometry.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
+import "./trigonometry/Complex.sol";
+
 enum Amenity {
     RESTAURANT,
     CAFE
@@ -47,6 +49,10 @@ library BookingLib {
             x_squared) - 127245381171000000) * x_squared) +
             212464129393000000) * x_squared) - 365662383026000000) *
             x_squared) + 1099483040474000000) * x);
+    }
+
+    function atan2(int256 x, int256 y) internal pure returns (int256) {
+        return Complex.p_atan2(y, x);
     }
 
     function tangent(uint256 x) internal pure returns (uint256) {
