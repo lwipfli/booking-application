@@ -85,18 +85,27 @@ contract LibraryTest {
     }
 
     function atan2(int256 x, int256 y) public pure returns (int256) {
-        return BookingLib.atan2(x, y);
+        return BookingLib.atan2Approx(x, y);
     }
 
     function c(int256 x) public pure returns (int256) {
         return
-            (BookingLib.atan2((x).sqrt(), (1000000000000000000 - x).sqrt())) *
-            2000000000000000000;
+            (
+                BookingLib.atan2Approx(
+                    (x).sqrt(),
+                    (1000000000000000000 - x).sqrt()
+                )
+            ) * 2000000000000000000;
     }
 
     function dFromA(int256 x) public pure returns (int256) {
         return
-            (BookingLib.atan2((x).sqrt(), (1000000000000000000 - x).sqrt())) *
+            (
+                BookingLib.atan2Approx(
+                    (x).sqrt(),
+                    (1000000000000000000 - x).sqrt()
+                )
+            ) *
             2000000000000000000 *
             6731000000000000000;
     }

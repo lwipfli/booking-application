@@ -10,7 +10,7 @@ enum Amenity {
 library BookingLib {
     using PRBMathSD59x18 for int256;
 
-    function atan2(int256 x, int256 y) internal pure returns (int256) {
+    function atan2Approx(int256 x, int256 y) internal pure returns (int256) {
         // From https://github.com/NovakDistributed/macroverse/blob/master/contracts/RealMath.sol
         int256 result;
 
@@ -77,7 +77,7 @@ library BookingLib {
         int256 a = calculateA(phi1, phi2, deltaPhi, deltaLambda);
 
         int256 c = PRBMathSD59x18.fromInt(2) *
-            atan2((PRBMathSD59x18.fromInt(1) - a).sqrt(), a.sqrt());
+            atan2Approx((PRBMathSD59x18.fromInt(1) - a).sqrt(), a.sqrt());
         return (R * c);
     }
 

@@ -1133,6 +1133,20 @@ describe("BookingContract", function () {
     });
   });
 
+  it("Atan2 values x:1 and y:1.", async function () {
+    const { libTest, owner, otherAccount } = await loadFixture(
+      deployLibraryTestFixture
+    );
+    var atan2Value = await libTest.atan2(
+      BigNumber.from("1000000000000000000"),
+      BigNumber.from("1000000000000000000")
+    );
+    expect(atan2Value).to.be.within(
+      BigNumber.from("785390000000000000"),
+      BigNumber.from("785490000000000000")
+    );
+  });
+
   describe("BigNumbers tests", function () {
     it("Trigonometry sin should be zero for Pi.", async function () {
       expect(BigNumber.from(42)).to.be.equal(42);
