@@ -187,7 +187,7 @@ library Complex {
     /// @param y y
     /// @param x x
     /// @return T T
-    function p_atan2(int y, int x) public pure returns (int T) {
+    function p_atan2(int y, int x) internal pure returns (int T) {
         int c1 = 3141592653589793300 / 4;
         int c2 = 3 * c1;
         int abs_y = y.abs() + 1e8;

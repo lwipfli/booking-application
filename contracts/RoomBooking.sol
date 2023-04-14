@@ -83,7 +83,7 @@ library BookingLib {
         int256 a = calculateA(phi1, phi2, deltaPhi, deltaLambda);
 
         int256 c = PRBMathSD59x18.fromInt(2) *
-            atan2Approx((PRBMathSD59x18.fromInt(1) - a).sqrt(), a.sqrt());
+            atan2((PRBMathSD59x18.fromInt(1) - a).sqrt(), a.sqrt());
         return (R * c);
     }
 
