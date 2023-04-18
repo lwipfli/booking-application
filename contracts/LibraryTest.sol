@@ -24,6 +24,10 @@ contract LibraryTest {
         return deltaPhi;
     }
 
+    function getUint(int256 x) public view returns (uint) {
+        return uint(x);
+    }
+
     function calculateTerm1(int256 deltaPhi) public view returns (int256) {
         // Math.sin(Δφ/2)
         int256 term_1;

@@ -98,6 +98,15 @@ describe("BookingContract", function () {
 
       expect(await booking.owner()).to.equal(owner.address);
     });
+    it("Uint conversion.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+
+      expect(
+        await libTest.getUint(BigNumber.from("180000000000000000000000"))
+      ).to.be.equal(BigNumber.from("180000000000000000000000"));
+    });
   });
 
   describe("Room posting", function () {
@@ -751,6 +760,7 @@ describe("BookingContract", function () {
         deployLibraryTestFixture
       );
 
+      /*
       console.log("For point 50,0 and 51, 0:");
 
       // φ1 should be roughly 0.872664626
@@ -863,6 +873,8 @@ describe("BookingContract", function () {
       console.log("D from A is: ", c);
 
       console.log("Distance is: ", distance);
+
+      */
     });
   });
 
@@ -1177,18 +1189,15 @@ describe("BookingContract", function () {
       const { libTest, owner, otherAccount } = await loadFixture(
         deployLibraryTestFixture
       );
-      expect(BigNumber.from("15.0e18")("50.0e18")).to.be.equal(
-        ethers.utils.parseUnits("50", 18)
-      );
 
       expect(
         await libTest.computeDistanceHaversine(
-          BigNumber.from("50.0e18"),
-          BigNumber.from("10.0e18"),
-          BigNumber.from("51.0e18"),
-          BigNumber.from("15.0e18")
+          BigNumber.from("50000000000000000000"),
+          BigNumber.from("10000000000000000000"),
+          BigNumber.from("51000000000000000000"),
+          BigNumber.from("15000000000000000000")
         )
-      ).to.be.equals(BigNumber.from("370600.0e18"));
+      ).to.be.equals(BigNumber.from("370600000000000000000000"));
     });
 
     it("-50,-10 , 51,15 should be distance of roughly 11480 km.", async function () {
@@ -1198,10 +1207,10 @@ describe("BookingContract", function () {
 
       expect(
         await libTest.computeDistanceHaversine(
-          BigNumber.from("-50.0e18"),
-          BigNumber.from("-10.0e18"),
-          ethers.utils.parseUnits("51", 18),
-          ethers.utils.parseUnits("15", 18)
+          BigNumber.from("-50000000000000000000"),
+          BigNumber.from("-10000000000000000000"),
+          BigNumber.from("51000000000000000000"),
+          BigNumber.from("15000000000000000000")
         )
       ).to.be.equals(ethers.utils.parseUnits("11480000", 18));
     });
@@ -1213,10 +1222,10 @@ describe("BookingContract", function () {
 
       expect(
         await libTest.computeDistanceHaversine(
-          ethers.utils.parseUnits("50", 18),
-          ethers.utils.parseUnits("10", 18),
-          -1 * ethers.utils.parseUnits("51", 18),
-          -1 * ethers.utils.parseUnits("15", 18)
+          BigNumber.from("50000000000000000000"),
+          BigNumber.from("10000000000000000000"),
+          BigNumber.from("-51000000000000000000"),
+          BigNumber.from("-15000000000000000000")
         )
       ).to.be.equals(ethers.utils.parseUnits("11480000", 18));
     });
@@ -1228,10 +1237,10 @@ describe("BookingContract", function () {
 
       expect(
         await libTest.computeDistanceHaversine(
-          -1 * ethers.utils.parseUnits("50", 18),
-          -1 * ethers.utils.parseUnits("10", 18),
-          -1 * ethers.utils.parseUnits("51", 18),
-          -1 * ethers.utils.parseUnits("15", 18)
+          BigNumber.from("-50000000000000000000"),
+          BigNumber.from("-10000000000000000000"),
+          BigNumber.from("-51000000000000000000"),
+          BigNumber.from("-15000000000000000000")
         )
       ).to.be.equals(ethers.utils.parseUnits("370600", 18));
     });
@@ -1245,10 +1254,27 @@ describe("BookingContract", function () {
         await libTest.computeDistanceHaversine(
           ethers.utils.parseUnits("180", 18),
           0,
-          -1 * ethers.utils.parseUnits("180", 18),
+          BigNumber.from("-180000000000000000000"),
           0
         )
       ).to.be.lessThanOrEqual(ethers.utils.parseUnits("1", 18));
+    });
+  });
+
+  describe("Small distances", function () {
+    it("50.001, 0 , 50,0  should be 111.2 meters, so less than 500.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+
+      expect(
+        await libTest.computeDistanceHaversine(
+          BigNumber.from("50001000000000000000"),
+          0,
+          BigNumber.from("50000000000000000000"),
+          0
+        )
+      ).to.be.lessThanOrEqual(BigNumber.from("50000000000000000000000"));
     });
   });
 

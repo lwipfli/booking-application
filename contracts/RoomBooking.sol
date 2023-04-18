@@ -52,7 +52,7 @@ library BookingLib {
     }
 
     function atan2(int256 x, int256 y) internal pure returns (int256) {
-        return Complex.p_atan2(y, x);
+        return Complex.p_atan2(x, y);
     }
 
     function tangent(uint256 x) internal pure returns (uint256) {
@@ -74,17 +74,17 @@ library BookingLib {
         int256 phi2 = (lat2 * PRBMathSD59x18.pi()) /
             PRBMathSD59x18.fromInt(180);
 
-        int256 deltaPhi = (((lat2 - lat1).abs() * PRBMathSD59x18.pi()) /
-            PRBMathSD59x18.fromInt(180));
+        int256 deltaPhi = ((PRBMathSD59x18.abs(lat2 - lat1) *
+            PRBMathSD59x18.pi()) / PRBMathSD59x18.fromInt(180));
 
-        int256 deltaLambda = (((long2 - long1).abs() * PRBMathSD59x18.pi()) /
-            PRBMathSD59x18.fromInt(180));
+        int256 deltaLambda = ((PRBMathSD59x18.abs(long2 - long1) *
+            PRBMathSD59x18.pi()) / PRBMathSD59x18.fromInt(180));
 
         int256 a = calculateA(phi1, phi2, deltaPhi, deltaLambda);
 
         int256 c = PRBMathSD59x18.fromInt(2) *
-            atan2((PRBMathSD59x18.fromInt(1) - a).sqrt(), a.sqrt());
-        return (R * c);
+            atan2(a.sqrt(), (PRBMathSD59x18.fromInt(1) - a).sqrt());
+        return PRBMathSD59x18.abs(R * c);
     }
 
     function calculateA(
@@ -96,6 +96,7 @@ library BookingLib {
         // Math.sin(Δφ/2)
         int256 term_1;
         // sin(-φ)=-sin(φ)
+
         if (deltaPhi < 0) {
             term_1 =
                 Trigonometry.sin(
@@ -104,12 +105,13 @@ library BookingLib {
                             PRBMathSD59x18.fromInt(2)
                     )
                 ) *
-                -1;
+                PRBMathSD59x18.fromInt(-1);
         } else {
             term_1 = Trigonometry.sin(
                 uint(deltaPhi / PRBMathSD59x18.fromInt(2))
             );
         }
+
         // Math.cos(φ1)
         int256 term_2;
         // cos(-φ)=cos(φ)
@@ -122,6 +124,7 @@ library BookingLib {
         }
         // Math.cos(φ2)
         int256 term_3;
+
         if (phiTwo < 0) {
             term_3 = Trigonometry.cos(
                 uint(PRBMathSD59x18.fromInt(-1) * phiTwo)
@@ -130,6 +133,7 @@ library BookingLib {
             term_3 = Trigonometry.cos(uint(phiTwo));
         }
         // Math.sin(Δλ/2)
+
         int256 term_4;
         if (deltaLambda < 0) {
             term_4 =
