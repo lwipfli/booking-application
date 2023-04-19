@@ -760,7 +760,6 @@ describe("BookingContract", function () {
         deployLibraryTestFixture
       );
 
-      /*
       console.log("For point 50,0 and 51, 0:");
 
       // φ1 should be roughly 0.872664626
@@ -802,7 +801,6 @@ describe("BookingContract", function () {
       expect(deltaLambda).to.be.greaterThanOrEqual(0);
 
       // CalculateA
-      console.log("Calculating A:");
       // Term 1: Math.sin(Δφ/2)
 
       // Should be rougly 0.008726646
@@ -833,6 +831,7 @@ describe("BookingContract", function () {
 
       expect(term1).to.be.equal(sinHalfDeltaPhi);
       console.log("Term 1 is:", term1);
+      console.log("Term 1 power 2 is:", await libTest.power(term1));
 
       // Term 2 Math.cos(φ1) should roughly be 0.64278761
       var term2 = await libTest.calculateTerm2(
@@ -859,14 +858,16 @@ describe("BookingContract", function () {
 
       var a = await libTest.calculateA(phiOne, phiTwo, deltaPhi, deltaLambda);
       // should be roughly 0.000076152 but seems to be 0 due to computation perhaps.
-      console.log("a is:", a);
+      console.log("A is:", a);
+
+      /*
       var distance = await libTest.computeDistanceHaversine(
         ethers.utils.parseUnits("50", 18),
         0,
         ethers.utils.parseUnits("51", 18),
         0
       );
-
+      
       var c = await libTest.c(a);
       console.log("C is: ", c);
       var c = await libTest.dFromA(a);
