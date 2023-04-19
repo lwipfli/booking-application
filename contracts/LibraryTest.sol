@@ -145,15 +145,17 @@ contract LibraryTest {
 
     function dFromA(int256 x) public pure returns (int256) {
         return
-            PRBMathSD59x18.mul(
+            PRBMathSD59x18.toInt(
                 PRBMathSD59x18.mul(
-                    BookingLib.atan2(
-                        PRBMathSD59x18.sqrt(x),
-                        PRBMathSD59x18.sqrt(PRBMathSD59x18.fromInt(1) - x)
+                    PRBMathSD59x18.mul(
+                        BookingLib.atan2Approx(
+                            PRBMathSD59x18.sqrt(x),
+                            PRBMathSD59x18.sqrt(PRBMathSD59x18.fromInt(1) - x)
+                        ),
+                        PRBMathSD59x18.fromInt(2)
                     ),
-                    PRBMathSD59x18.fromInt(2)
-                ),
-                PRBMathSD59x18.fromInt(6371000)
+                    PRBMathSD59x18.fromInt(6371000)
+                )
             );
     }
 

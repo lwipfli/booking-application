@@ -865,25 +865,22 @@ describe("BookingContract", function () {
       console.log("Sqrt of 1-A is:", aMinusOneSqrt);
       console.log(
         "Atan of both is:",
-        await libTest.atan2(aSqrt, aMinusOneSqrt)
+        await libTest.atan2Approx(aSqrt, aMinusOneSqrt)
       );
 
       var c = await libTest.c(a);
       console.log("C is: ", c);
-      var c = await libTest.dFromA(a);
-      console.log("D from A is: ", c);
 
-      /*
-      var distance = await libTest.computeDistanceHaversine(
-        ethers.utils.parseUnits("50", 18),
+      var distance1 = await libTest.dFromA(a);
+      console.log("D from A is: ", distance1, " meters.");
+
+      var distance2 = await libTest.computeDistanceHaversine(
+        BigNumber.from("50000000000000000000"),
         0,
-        ethers.utils.parseUnits("51", 18),
+        BigNumber.from("51000000000000000000"),
         0
       );
-      
-      console.log("Distance is: ", distance);
-
-      */
+      console.log("Distance from haversine: ", distance2, " meters.");
     });
   });
 
@@ -1206,7 +1203,7 @@ describe("BookingContract", function () {
           BigNumber.from("51000000000000000000"),
           BigNumber.from("15000000000000000000")
         )
-      ).to.be.equals(BigNumber.from("370600000000000000000000"));
+      ).to.be.equals(370600);
     });
 
     it("-50,-10 , 51,15 should be distance of roughly 11480 km.", async function () {
@@ -1221,7 +1218,7 @@ describe("BookingContract", function () {
           BigNumber.from("51000000000000000000"),
           BigNumber.from("15000000000000000000")
         )
-      ).to.be.equals(ethers.utils.parseUnits("11480000", 18));
+      ).to.be.equals(11480000);
     });
 
     it("50,10 , -51,-15 should be distance of roughly 11480 km.", async function () {
@@ -1236,7 +1233,7 @@ describe("BookingContract", function () {
           BigNumber.from("-51000000000000000000"),
           BigNumber.from("-15000000000000000000")
         )
-      ).to.be.equals(ethers.utils.parseUnits("11480000", 18));
+      ).to.be.equals(11480000);
     });
 
     it("-50,-10 , -51,-15 should be distance of roughly 11480 km.", async function () {
@@ -1251,7 +1248,7 @@ describe("BookingContract", function () {
           BigNumber.from("-51000000000000000000"),
           BigNumber.from("-15000000000000000000")
         )
-      ).to.be.equals(ethers.utils.parseUnits("370600", 18));
+      ).to.be.equals(370600);
     });
 
     it("0, 180 , 0,-180 should be very small distance.", async function () {
@@ -1266,7 +1263,7 @@ describe("BookingContract", function () {
           BigNumber.from("-180000000000000000000"),
           0
         )
-      ).to.be.lessThanOrEqual(ethers.utils.parseUnits("1", 18));
+      ).to.be.lessThanOrEqual(1);
     });
   });
 
@@ -1283,7 +1280,7 @@ describe("BookingContract", function () {
           BigNumber.from("50000000000000000000"),
           0
         )
-      ).to.be.lessThanOrEqual(BigNumber.from("50000000000000000000000"));
+      ).to.be.lessThanOrEqual(500);
     });
   });
 

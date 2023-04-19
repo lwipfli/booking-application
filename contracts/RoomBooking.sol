@@ -116,13 +116,19 @@ library BookingLib {
             PRBMathSD59x18.fromInt(180)
         );
 
-        int256 a = calculateA(phi1, phi2, deltaPhi, deltaLambda);
+        int256 a = PRBMathSD59x18.abs(
+            calculateA(phi1, phi2, deltaPhi, deltaLambda)
+        );
 
         int256 c = PRBMathSD59x18.mul(
             PRBMathSD59x18.fromInt(2),
-            atan2(a.sqrt(), (PRBMathSD59x18.fromInt(1) - a).sqrt())
+            atan2Approx(
+                PRBMathSD59x18.sqrt(a),
+                PRBMathSD59x18.sqrt(PRBMathSD59x18.fromInt(1) - a)
+            )
         );
-        return PRBMathSD59x18.abs(PRBMathSD59x18.mul(R, c));
+        return
+            PRBMathSD59x18.toInt(PRBMathSD59x18.abs(PRBMathSD59x18.mul(R, c)));
     }
 
     function calculateA(
