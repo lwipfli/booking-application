@@ -16,15 +16,18 @@ library BookingLib {
         // From https://github.com/NovakDistributed/macroverse/blob/master/contracts/RealMath.sol
         int256 result;
 
-        int256 abs_x = y.abs();
-        int256 abs_y = x.abs();
+        int256 abs_x = PRBMathSD59x18.abs(y);
+        int256 abs_y = PRBMathSD59x18.abs(x);
 
         if (abs_x > abs_y) {
-            result = atanSmall((abs_y / abs_x));
+            result = atanSmall(PRBMathSD59x18.div(abs_y, abs_x));
         } else {
             result =
-                (PRBMathSD59x18.pi() / PRBMathSD59x18.fromInt(2)) -
-                atanSmall((abs_x / abs_y));
+                PRBMathSD59x18.div(
+                    PRBMathSD59x18.pi(),
+                    PRBMathSD59x18.fromInt(2)
+                ) -
+                atanSmall(PRBMathSD59x18.div(abs_x, abs_y));
         }
 
         if (x < 0) {
@@ -44,11 +47,27 @@ library BookingLib {
 
     function atanSmall(int256 x) internal pure returns (int256) {
         // From https://github.com/NovakDistributed/macroverse/blob/master/contracts/RealMath.sol
-        int256 x_squared = x.pow(2);
-        return (((((((((((-12606780422000000 * x_squared) + 57120178819000000) *
-            x_squared) - 127245381171000000) * x_squared) +
-            212464129393000000) * x_squared) - 365662383026000000) *
-            x_squared) + 1099483040474000000) * x);
+        int256 x_squared = PRBMathSD59x18.pow(x, PRBMathSD59x18.fromInt(2));
+        return
+            PRBMathSD59x18.mul(
+                (PRBMathSD59x18.mul(
+                    (PRBMathSD59x18.mul(
+                        (PRBMathSD59x18.mul(
+                            (PRBMathSD59x18.mul(
+                                (PRBMathSD59x18.mul(
+                                    -12606780422000000,
+                                    x_squared
+                                ) + 57120178819000000),
+                                x_squared
+                            ) - 127245381171000000),
+                            x_squared
+                        ) + 212464129393000000),
+                        x_squared
+                    ) - 365662383026000000),
+                    x_squared
+                ) + 1099483040474000000),
+                x
+            );
     }
 
     function atan2(int256 x, int256 y) internal pure returns (int256) {
@@ -56,7 +75,10 @@ library BookingLib {
     }
 
     function tangent(uint256 x) internal pure returns (uint256) {
-        return uint256(Trigonometry.sin(x) / Trigonometry.cos(x));
+        return
+            uint256(
+                PRBMathSD59x18.div(Trigonometry.sin(x), Trigonometry.cos(x))
+            );
     }
 
     function computeDistanceHaversine(
@@ -68,23 +90,39 @@ library BookingLib {
         // From https://www.movable-type.co.uk/scripts/latlong.html
 
         int256 R = PRBMathSD59x18.fromInt(6371000);
-        int256 phi1 = (lat1 * PRBMathSD59x18.pi()) /
-            PRBMathSD59x18.fromInt(180);
+        int256 phi1 = PRBMathSD59x18.div(
+            (lat1 * PRBMathSD59x18.pi()),
+            PRBMathSD59x18.fromInt(180)
+        );
 
-        int256 phi2 = (lat2 * PRBMathSD59x18.pi()) /
-            PRBMathSD59x18.fromInt(180);
+        int256 phi2 = PRBMathSD59x18.div(
+            (lat2 * PRBMathSD59x18.pi()),
+            PRBMathSD59x18.fromInt(180)
+        );
 
-        int256 deltaPhi = ((PRBMathSD59x18.abs(lat2 - lat1) *
-            PRBMathSD59x18.pi()) / PRBMathSD59x18.fromInt(180));
+        int256 deltaPhi = PRBMathSD59x18.div(
+            PRBMathSD59x18.mul(
+                PRBMathSD59x18.abs(lat2 - lat1),
+                PRBMathSD59x18.pi()
+            ),
+            PRBMathSD59x18.fromInt(180)
+        );
 
-        int256 deltaLambda = ((PRBMathSD59x18.abs(long2 - long1) *
-            PRBMathSD59x18.pi()) / PRBMathSD59x18.fromInt(180));
+        int256 deltaLambda = PRBMathSD59x18.div(
+            PRBMathSD59x18.mul(
+                PRBMathSD59x18.abs(long2 - long1),
+                PRBMathSD59x18.pi()
+            ),
+            PRBMathSD59x18.fromInt(180)
+        );
 
         int256 a = calculateA(phi1, phi2, deltaPhi, deltaLambda);
 
-        int256 c = PRBMathSD59x18.fromInt(2) *
-            atan2(a.sqrt(), (PRBMathSD59x18.fromInt(1) - a).sqrt());
-        return PRBMathSD59x18.abs(R * c);
+        int256 c = PRBMathSD59x18.mul(
+            PRBMathSD59x18.fromInt(2),
+            atan2(a.sqrt(), (PRBMathSD59x18.fromInt(1) - a).sqrt())
+        );
+        return PRBMathSD59x18.abs(PRBMathSD59x18.mul(R, c));
     }
 
     function calculateA(
@@ -98,17 +136,23 @@ library BookingLib {
         // sin(-φ)=-sin(φ)
 
         if (deltaPhi < 0) {
-            term_1 =
+            term_1 = PRBMathSD59x18.mul(
                 Trigonometry.sin(
                     uint(
-                        (PRBMathSD59x18.fromInt(-1) * deltaPhi) /
+                        PRBMathSD59x18.div(
+                            PRBMathSD59x18.mul(
+                                PRBMathSD59x18.fromInt(-1),
+                                deltaPhi
+                            ),
                             PRBMathSD59x18.fromInt(2)
+                        )
                     )
-                ) *
-                PRBMathSD59x18.fromInt(-1);
+                ),
+                PRBMathSD59x18.fromInt(-1)
+            );
         } else {
             term_1 = Trigonometry.sin(
-                uint(deltaPhi / PRBMathSD59x18.fromInt(2))
+                uint(PRBMathSD59x18.div(deltaPhi, PRBMathSD59x18.fromInt(2)))
             );
         }
 
@@ -117,7 +161,7 @@ library BookingLib {
         // cos(-φ)=cos(φ)
         if (phiOne < 0) {
             term_2 = Trigonometry.cos(
-                uint(PRBMathSD59x18.fromInt(-1) * phiOne)
+                uint(PRBMathSD59x18.mul(PRBMathSD59x18.fromInt(-1), phiOne))
             );
         } else {
             term_2 = Trigonometry.cos(uint(phiOne));
@@ -127,7 +171,7 @@ library BookingLib {
 
         if (phiTwo < 0) {
             term_3 = Trigonometry.cos(
-                uint(PRBMathSD59x18.fromInt(-1) * phiTwo)
+                uint(PRBMathSD59x18.mul(PRBMathSD59x18.fromInt(-1), phiTwo))
             );
         } else {
             term_3 = Trigonometry.cos(uint(phiTwo));
@@ -136,21 +180,36 @@ library BookingLib {
 
         int256 term_4;
         if (deltaLambda < 0) {
-            term_4 =
+            term_4 = PRBMathSD59x18.mul(
                 Trigonometry.sin(
                     uint(
-                        (PRBMathSD59x18.fromInt(-1) * deltaLambda) /
+                        PRBMathSD59x18.div(
+                            (
+                                PRBMathSD59x18.mul(
+                                    PRBMathSD59x18.fromInt(-1),
+                                    deltaLambda
+                                )
+                            ),
                             PRBMathSD59x18.fromInt(2)
+                        )
                     )
-                ) *
-                -1;
+                ),
+                PRBMathSD59x18.fromInt(-1)
+            );
         } else {
             term_4 = Trigonometry.sin(
-                uint(deltaLambda / PRBMathSD59x18.fromInt(2))
+                uint(PRBMathSD59x18.div(deltaLambda, PRBMathSD59x18.fromInt(2)))
             );
         }
 
-        return (term_1 * term_1) + (term_2 * term_3 * term_4 * term_4);
+        return
+            (PRBMathSD59x18.pow(term_1, PRBMathSD59x18.fromInt(2))) +
+            (
+                PRBMathSD59x18.mul(
+                    PRBMathSD59x18.mul(term_2, term_3),
+                    PRBMathSD59x18.mul(term_4, term_4)
+                )
+            );
     }
 
     function convertInt256ToString(
