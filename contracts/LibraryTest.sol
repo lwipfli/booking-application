@@ -92,6 +92,14 @@ contract LibraryTest {
         return Trigonometry.sin(uint(radian));
     }
 
+    function sqrt(int256 x) public view returns (int256) {
+        return PRBMathSD59x18.sqrt(x);
+    }
+
+    function OneMinusSqrt(int256 x) public view returns (int256) {
+        return PRBMathSD59x18.sqrt(PRBMathSD59x18.fromInt(1) - x);
+    }
+
     function getPi() public view returns (uint256) {
         return Trigonometry.PI;
     }
@@ -117,13 +125,17 @@ contract LibraryTest {
     }
 
     function atan2(int256 x, int256 y) public pure returns (int256) {
-        return BookingLib.atan2(y, x);
+        return BookingLib.atan2(x, y);
+    }
+
+    function atan2Approx(int256 x, int256 y) public pure returns (int256) {
+        return BookingLib.atan2Approx(x, y);
     }
 
     function c(int256 x) public pure returns (int256) {
         return
             PRBMathSD59x18.mul(
-                BookingLib.atan2Approx(
+                BookingLib.atan2(
                     PRBMathSD59x18.sqrt(x),
                     PRBMathSD59x18.sqrt(PRBMathSD59x18.fromInt(1) - x)
                 ),
@@ -135,7 +147,7 @@ contract LibraryTest {
         return
             PRBMathSD59x18.mul(
                 PRBMathSD59x18.mul(
-                    BookingLib.atan2Approx(
+                    BookingLib.atan2(
                         PRBMathSD59x18.sqrt(x),
                         PRBMathSD59x18.sqrt(PRBMathSD59x18.fromInt(1) - x)
                     ),

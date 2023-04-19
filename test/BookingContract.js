@@ -859,6 +859,19 @@ describe("BookingContract", function () {
       var a = await libTest.calculateA(phiOne, phiTwo, deltaPhi, deltaLambda);
       // should be roughly 0.000076152 but seems to be 0 due to computation perhaps.
       console.log("A is:", a);
+      var aSqrt = await libTest.sqrt(a);
+      var aMinusOneSqrt = await libTest.OneMinusSqrt(a);
+      console.log("Sqrt of A is:", aSqrt);
+      console.log("Sqrt of 1-A is:", aMinusOneSqrt);
+      console.log(
+        "Atan of both is:",
+        await libTest.atan2(aSqrt, aMinusOneSqrt)
+      );
+
+      var c = await libTest.c(a);
+      console.log("C is: ", c);
+      var c = await libTest.dFromA(a);
+      console.log("D from A is: ", c);
 
       /*
       var distance = await libTest.computeDistanceHaversine(
@@ -868,11 +881,6 @@ describe("BookingContract", function () {
         0
       );
       
-      var c = await libTest.c(a);
-      console.log("C is: ", c);
-      var c = await libTest.dFromA(a);
-      console.log("D from A is: ", c);
-
       console.log("Distance is: ", distance);
 
       */
