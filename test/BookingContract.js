@@ -1279,8 +1279,23 @@ describe("BookingContract", function () {
           0,
           BigNumber.from("50000000000000000000"),
           0
-        )) - BigNumber.from(200)
+        )) - BigNumber.from(111)
       ).to.be.lessThan(100);
+    });
+
+    it("50.0045, 0 , 50,0  should be 500.4 meters, so difference should be less than 50 meters.", async function () {
+      const { libTest, owner, otherAccount } = await loadFixture(
+        deployLibraryTestFixture
+      );
+
+      expect(
+        (await libTest.computeDistanceHaversine(
+          BigNumber.from("50004500000000000000"),
+          0,
+          BigNumber.from("50000000000000000000"),
+          0
+        )) - BigNumber.from(500)
+      ).to.be.lessThan(50);
     });
   });
 
