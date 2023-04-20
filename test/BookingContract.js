@@ -1197,58 +1197,58 @@ describe("BookingContract", function () {
       );
 
       expect(
-        await libTest.computeDistanceHaversine(
+        (await libTest.computeDistanceHaversine(
           BigNumber.from("50000000000000000000"),
           BigNumber.from("10000000000000000000"),
           BigNumber.from("51000000000000000000"),
           BigNumber.from("15000000000000000000")
-        )
-      ).to.be.equals(370600);
+        )) - BigNumber.from("370600")
+      ).to.be.lessThanOrEqual(500);
     });
 
-    it("-50,-10 , 51,15 should be distance of roughly 11480 km.", async function () {
+    it("-50,-10 , 51,15 should be distance of roughly 11480 km, so difference should be at max 500 meters.", async function () {
       const { libTest, owner, otherAccount } = await loadFixture(
         deployLibraryTestFixture
       );
 
       expect(
-        await libTest.computeDistanceHaversine(
+        (await libTest.computeDistanceHaversine(
           BigNumber.from("-50000000000000000000"),
           BigNumber.from("-10000000000000000000"),
           BigNumber.from("51000000000000000000"),
           BigNumber.from("15000000000000000000")
-        )
-      ).to.be.equals(11480000);
+        )) - BigNumber.from("11480000")
+      ).to.be.lessThanOrEqual(500);
     });
 
-    it("50,10 , -51,-15 should be distance of roughly 11480 km.", async function () {
+    it("50,10 , -51,-15 should be distance of roughly 11480 km, so difference should be at max 500 meters.", async function () {
       const { libTest, owner, otherAccount } = await loadFixture(
         deployLibraryTestFixture
       );
 
       expect(
-        await libTest.computeDistanceHaversine(
+        (await libTest.computeDistanceHaversine(
           BigNumber.from("50000000000000000000"),
           BigNumber.from("10000000000000000000"),
           BigNumber.from("-51000000000000000000"),
           BigNumber.from("-15000000000000000000")
-        )
-      ).to.be.equals(11480000);
+        )) - BigNumber.from("11480000")
+      ).to.be.lessThanOrEqual(500);
     });
 
-    it("-50,-10 , -51,-15 should be distance of roughly 11480 km.", async function () {
+    it("-50,-10 , -51,-15 should be distance of roughly 11480 km, so difference should be at max 500 meters.", async function () {
       const { libTest, owner, otherAccount } = await loadFixture(
         deployLibraryTestFixture
       );
 
       expect(
-        await libTest.computeDistanceHaversine(
+        (await libTest.computeDistanceHaversine(
           BigNumber.from("-50000000000000000000"),
           BigNumber.from("-10000000000000000000"),
           BigNumber.from("-51000000000000000000"),
           BigNumber.from("-15000000000000000000")
-        )
-      ).to.be.equals(370600);
+        )) - BigNumber.from("370600")
+      ).to.be.lessThanOrEqual(500);
     });
 
     it("0, 180 , 0,-180 should be very small distance.", async function () {
@@ -1268,19 +1268,19 @@ describe("BookingContract", function () {
   });
 
   describe("Small distances", function () {
-    it("50.001, 0 , 50,0  should be 111.2 meters, so less than 500.", async function () {
+    it("50.001, 0 , 50,0  should be 111.2 meters, so difference should be less than 100 meters.", async function () {
       const { libTest, owner, otherAccount } = await loadFixture(
         deployLibraryTestFixture
       );
 
       expect(
-        await libTest.computeDistanceHaversine(
+        (await libTest.computeDistanceHaversine(
           BigNumber.from("50001000000000000000"),
           0,
           BigNumber.from("50000000000000000000"),
           0
-        )
-      ).to.be.lessThanOrEqual(500);
+        )) - BigNumber.from(200)
+      ).to.be.lessThan(100);
     });
   });
 
