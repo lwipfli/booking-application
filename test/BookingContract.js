@@ -1300,7 +1300,122 @@ describe("BookingContract", function () {
   });
 
   describe("Price adaption", function () {
-    //TODO
+    it("Single new room near the same location, price should be adapted.", async function () {
+      const { booking, owner, otherAccount, bookingDateTimestamp } =
+        await loadFixture(OneRoomPostedFixture);
+      expect(await booking.getNumberOfRooms()).to.be.equal(1);
+
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          BigNumber.from("50000010000000000000"),
+          0,
+          30,
+          "TestURI",
+          600,
+          true,
+          false
+        );
+      expect(await booking.getNumberOfRooms()).to.be.equal(2);
+      var newRoom = await booking.getRoom(1);
+      expect(newRoom.pricePerDay).to.be.equal(25);
+    });
+
+    it("Single new room too far away, price should not be adapted.", async function () {
+      const { booking, owner, otherAccount, bookingDateTimestamp } =
+        await loadFixture(OneRoomPostedFixture);
+      expect(await booking.getNumberOfRooms()).to.be.equal(1);
+
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          BigNumber.from("60000000000000000000"),
+          0,
+          30,
+          "TestURI",
+          600,
+          true,
+          false
+        );
+      expect(await booking.getNumberOfRooms()).to.be.equal(2);
+      var newRoom = await booking.getRoom(1);
+      expect(newRoom.pricePerDay).to.be.equal(30);
+    });
+
+    it("Two new rooms near the same location, price should be adapted.", async function () {
+      const { booking, owner, otherAccount, bookingDateTimestamp } =
+        await loadFixture(OneRoomPostedFixture);
+      expect(await booking.getNumberOfRooms()).to.be.equal(1);
+
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          BigNumber.from("50000000020000000000"),
+          0,
+          40,
+          "TestURI",
+          600,
+          true,
+          false
+        );
+      expect(await booking.getNumberOfRooms()).to.be.equal(2);
+      var newRoom = await booking.getRoom(1);
+      expect(newRoom.pricePerDay).to.be.equal(30);
+
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          BigNumber.from("50000000030000000000"),
+          0,
+          27,
+          "TestURI",
+          600,
+          true,
+          false
+        );
+      expect(await booking.getNumberOfRooms()).to.be.equal(3);
+      newRoom = await booking.getRoom(2);
+      expect(newRoom.pricePerDay).to.be.equal(26);
+    });
+
+    it("Average price information tests.", async function () {
+      const { booking, owner, otherAccount, bookingDateTimestamp } =
+        await loadFixture(OneRoomPostedFixture);
+      expect(await booking.getNumberOfRooms()).to.be.equal(1);
+      expect(
+        await booking.averagePriceToSurrounding(
+          BigNumber.from("50000000000000000000"),
+          0,
+          600
+        )
+      ).to.be.equal(20);
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          BigNumber.from("50000000020000000000"),
+          0,
+          40,
+          "TestURI",
+          600,
+          true,
+          false
+        );
+      expect(await booking.getNumberOfRooms()).to.be.equal(2);
+      expect(
+        await booking.averagePriceToSurrounding(
+          BigNumber.from("50000000000000000000"),
+          0,
+          600
+        )
+      ).to.be.equal(25);
+      expect(
+        await booking.averagePriceToSurrounding(
+          BigNumber.from("30000000000000000000"),
+          BigNumber.from("30000000000000000000"),
+          600
+        )
+      ).to.be.equal(0);
+    });
   });
 
   describe("Search functionality", function () {

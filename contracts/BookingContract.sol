@@ -109,7 +109,6 @@ contract BookingContract {
         );
         // Add unique ID to room.
         addRoomIndex(msg.sender, idx);
-        //TODO Adapt price
 
         // TODO Search surrounding
         emit RoomPosted(
@@ -149,14 +148,28 @@ contract BookingContract {
 
         Room storage room = rooms[idx];
 
-        //TODO Hanlde price adaption
-
         //TODO handle oracle call
 
         room.bookable = true;
         room.uri = uri;
         room.searchRadius = searchRadius;
-        room.pricePerDay = pricePerDay;
+        //Hanlde price adaption
+        if (adaptPrice) {
+            uint averagePrice = averagePriceToSurrounding(
+                latitude,
+                longitude,
+                searchRadius
+            );
+            uint fractal;
+            if (averagePrice == 0) {
+                fractal = 1;
+            } else {
+                fractal = 2;
+            }
+            room.pricePerDay = (pricePerDay + averagePrice) / fractal;
+        } else {
+            room.pricePerDay = pricePerDay;
+        }
         room.amenities = amenities;
 
         room.owner = msg.sender;
@@ -252,11 +265,11 @@ contract BookingContract {
             room.owner == msg.sender,
             "Owner is different from one updating."
         );
+
         room.pricePerDay = pricePerDay;
+
         room.uri = uri;
         room.searchRadius = searchRadius;
-
-        //TODO Adapt price
 
         //TODO Search surrounding
         emit RoomUpdated(
@@ -318,21 +331,21 @@ contract BookingContract {
     ) public view returns (uint averagedPrice) {
         uint number = 0;
         uint price = 0;
-        for (uint i = 0; i > rooms.length; i++) {
+        for (uint i = 0; i < rooms.length; i++) {
             Room memory room = rooms[i];
-            /*
             if (
-                BookingLib.computeDistanceHaversine(
-                    latitude,
-                    longitude,
-                    room.position.latitude,
-                    room.position.longitude
+                uint(
+                    BookingLib.computeDistanceHaversine(
+                        latitude,
+                        longitude,
+                        room.position.latitude,
+                        room.position.longitude
+                    )
                 ) <= distance
             ) {
                 number++;
                 price += room.pricePerDay;
             }
-            */
         }
         if (number == 0) {
             return 0;
