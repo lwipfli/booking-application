@@ -1419,6 +1419,120 @@ describe("BookingContract", function () {
   });
 
   describe("Search functionality", function () {
-    //TODO
+    it("Search for room, and find initial one.", async function () {
+      const { booking, owner, otherAccount, bookingDateTimestamp } =
+        await loadFixture(OneRoomPostedFixture);
+      expect(await booking.getNumberOfRooms()).to.be.equal(1);
+
+      var indices = await booking.searchForRooms(
+        BigNumber.from("50000000000000000000"),
+        0,
+        600,
+        2
+      );
+
+      expect(indices.length).to.be.equal(2);
+      expect(indices[0]).to.be.equal(0);
+      expect(indices[1]).to.be.equal(0);
+    });
+
+    it("Search for two rooms, and find them.", async function () {
+      const { booking, owner, otherAccount, bookingDateTimestamp } =
+        await loadFixture(OneRoomPostedFixture);
+      expect(await booking.getNumberOfRooms()).to.be.equal(1);
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          BigNumber.from("50000000020000000000"),
+          0,
+          40,
+          "TestURI",
+          600,
+          true,
+          false
+        );
+      expect(await booking.getNumberOfRooms()).to.be.equal(2);
+
+      var indices = await booking.searchForRooms(
+        BigNumber.from("50000000000000000000"),
+        0,
+        600,
+        2
+      );
+
+      expect(indices.length).to.be.equal(2);
+      expect(indices[0]).to.be.equal(0);
+      expect(indices[1]).to.be.equal(1);
+    });
+
+    it("Search for second room, and find it.", async function () {
+      const { booking, owner, otherAccount, bookingDateTimestamp } =
+        await loadFixture(OneRoomPostedFixture);
+      expect(await booking.getNumberOfRooms()).to.be.equal(1);
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          BigNumber.from("60000000020000000000"),
+          0,
+          40,
+          "TestURI",
+          600,
+          true,
+          false
+        );
+
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          BigNumber.from("50000000020000000000"),
+          0,
+          40,
+          "TestURI",
+          600,
+          true,
+          false
+        );
+
+      expect(await booking.getNumberOfRooms()).to.be.equal(3);
+
+      var indices = await booking.searchForRooms(
+        BigNumber.from("60000000000000000000"),
+        0,
+        600,
+        1
+      );
+
+      expect(indices.length).to.be.equal(1);
+      expect(indices[0]).to.be.equal(1);
+
+      indices = await booking.searchForRooms(
+        BigNumber.from("50000000000000000000"),
+        0,
+        600,
+        2
+      );
+
+      expect(indices.length).to.be.equal(2);
+      expect(indices[0]).to.be.equal(0);
+      expect(indices[1]).to.be.equal(2);
+    });
+
+    it("Search for three rooms, but find none.", async function () {
+      const { booking, owner, otherAccount, bookingDateTimestamp } =
+        await loadFixture(OneRoomPostedFixture);
+      expect(await booking.getNumberOfRooms()).to.be.equal(1);
+
+      var indices = await booking.searchForRooms(
+        BigNumber.from("60000000000000000000"),
+        0,
+        600,
+        3
+      );
+
+      expect(indices.length).to.be.equal(3);
+      expect(indices[0]).to.be.equal(0);
+      expect(indices[1]).to.be.equal(0);
+      expect(indices[2]).to.be.equal(0);
+    });
   });
 });

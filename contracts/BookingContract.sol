@@ -357,12 +357,12 @@ contract BookingContract {
         int256 latitude,
         int256 longitude,
         uint distance,
-        uint range
+        uint maxNumber
     ) public view returns (uint[] memory roomIndices) {
-        uint[] memory indexes = new uint[](range);
+        uint[] memory indexes = new uint[](maxNumber);
         uint fill = 0;
         for (uint i = 0; i < rooms.length; i++) {
-            if (fill == range) {
+            if (fill == maxNumber) {
                 break;
             }
             Room memory room = rooms[i];
