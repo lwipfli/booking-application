@@ -22,7 +22,6 @@
     "@chainlink/contracts": "^0.6.1",
     "@openzeppelin/contracts": "^4.8.2",
     "@prb/math": "^3.3.1",
-    "ethers": "^5.7.2",
     "num_complex_solidity": "^1.1.0",
     "prb-math": "^2.4.3"
   }
