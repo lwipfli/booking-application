@@ -8,6 +8,25 @@ import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
 
 //import "@chainlink/contracts/src/v0.8/vendor/SafeMathChainlink.sol";
 
-contract OracleMock {
+contract OracleMock  is ChainlinkRequestInterface {
+
+    function oracleRequest(
+    address sender,
+    uint256 requestPrice,
+    bytes32 serviceAgreementID,
+    address callbackAddress,
+    bytes4 callbackFunctionId,
+    uint256 nonce,
+    uint256 dataVersion,
+    bytes calldata data
+  ) external {}
+
+  function cancelOracleRequest(
+    bytes32 requestId,
+    uint256 payment,
+    bytes4 callbackFunctionId,
+    uint256 expiration
+  ) external{}
+
 
 }
