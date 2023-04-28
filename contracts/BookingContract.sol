@@ -12,16 +12,17 @@ contract BookingContract {
         uint pricePerDay,
         int256 latitude,
         int256 longitude,
-        string amenities,
         string uri
     );
     event RoomUpdated(
         uint indexed roomIndex,
         uint pricePerDay,
         uint searchRadius,
-        string amenities,
         string uri
     );
+
+    event RoomAmenities(uint indexed roomIndex, string amenities);
+
     event RoomBookabeUpdate(uint indexed roomIndex, bool bookable);
     event RoomBooked(
         uint indexed roomIndex,
@@ -45,7 +46,13 @@ contract BookingContract {
         _;
     }
 
+    modifier onlyHelper() {
+        require((msg.sender == helper));
+        _;
+    }
+
     address public owner;
+    address public helper;
 
     Room[] public rooms;
 
@@ -83,8 +90,7 @@ contract BookingContract {
         uint pricePerDay,
         string calldata uri,
         uint searchRadius,
-        bool adaptPrice,
-        bool searchSurroundings
+        bool adaptPrice
     ) external {
         require(
             (-90000000000000000000 <= latitude) &&
@@ -98,28 +104,18 @@ contract BookingContract {
 
         uint idx;
         Amenity[] memory amenities;
-        (idx, amenities) = createRoom(
+        idx = createRoom(
             latitude,
             longitude,
             pricePerDay,
             uri,
             searchRadius,
-            adaptPrice,
-            searchSurroundings
+            adaptPrice
         );
         // Add unique ID to room.
         addRoomIndex(msg.sender, idx);
 
-        // TODO Search surrounding
-        emit RoomPosted(
-            idx,
-            msg.sender,
-            pricePerDay,
-            latitude,
-            longitude,
-            turnAmentitesIntoString(amenities),
-            uri
-        );
+        emit RoomPosted(idx, msg.sender, pricePerDay, latitude, longitude, uri);
     }
 
     function addRoomIndex(address roomOwner, uint roomIndex) internal {
@@ -132,15 +128,39 @@ contract BookingContract {
         return BookingLib.convertInt256ToString(value);
     }
 
+    function updateAmenities(uint roomIndex) external returns (bool) {
+        Room storage room = rooms[roomIndex];
+        require(
+            room.owner == msg.sender,
+            "Owner is different from one updating."
+        );
+
+        // Send helper request
+
+        return true;
+    }
+
+    function addAmenitiesToRoom(
+        uint roomIndex,
+        uint[] calldata amenities
+    ) external onlyHelper {
+        Room storage room = rooms[roomIndex];
+        Amenity[] memory amenities;
+
+        //room.amenities=
+
+        // Add new Amenities
+        emit RoomAmenities(roomIndex, turnAmentitesIntoString(amenities));
+    }
+
     function createRoom(
         int256 latitude,
         int256 longitude,
         uint pricePerDay,
         string calldata uri,
         uint searchRadius,
-        bool adaptPrice,
-        bool searchSurroundings
-    ) internal returns (uint, Amenity[] memory) {
+        bool adaptPrice
+    ) internal returns (uint) {
         uint idx = rooms.length;
         rooms.push();
         Amenity[] memory amenities;
@@ -148,11 +168,10 @@ contract BookingContract {
 
         Room storage room = rooms[idx];
 
-        //TODO handle oracle call
-
         room.bookable = true;
         room.uri = uri;
         room.searchRadius = searchRadius;
+
         //Hanlde price adaption
         if (adaptPrice) {
             uint averagePrice = averagePriceToSurrounding(
@@ -176,7 +195,7 @@ contract BookingContract {
         position.latitude = latitude;
         position.longitude = longitude;
         room.position = position;
-        return (idx, amenities);
+        return idx;
     }
 
     function bookRoom(
@@ -257,8 +276,7 @@ contract BookingContract {
         uint pricePerDay,
         string calldata uri,
         uint searchRadius,
-        bool adaptPrice,
-        bool searchSurroundings
+        bool adaptPrice
     ) public roomIndexCheck(roomIndex) {
         Room storage room = rooms[roomIndex];
         require(
@@ -271,14 +289,7 @@ contract BookingContract {
         room.uri = uri;
         room.searchRadius = searchRadius;
 
-        //TODO Search surrounding
-        emit RoomUpdated(
-            roomIndex,
-            pricePerDay,
-            searchRadius,
-            turnAmentitesIntoString(room.amenities),
-            uri
-        );
+        emit RoomUpdated(roomIndex, pricePerDay, searchRadius, uri);
     }
 
     function turnAmentitesIntoString(

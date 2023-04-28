@@ -54,15 +54,7 @@ describe("BookingContract", function () {
 
     await booking
       .connect(otherAccount)
-      .postRoom(
-        ethers.utils.parseUnits("50", 18),
-        0,
-        20,
-        "TestURI",
-        50,
-        false,
-        false
-      );
+      .postRoom(ethers.utils.parseUnits("50", 18), 0, 20, "TestURI", 50, false);
     return { booking, owner, otherAccount, bookingDateTimestamp };
   }
 
@@ -130,7 +122,6 @@ describe("BookingContract", function () {
             20,
             "TestURI",
             50,
-            false,
             false
           )
       )
@@ -141,7 +132,6 @@ describe("BookingContract", function () {
           20,
           ethers.utils.parseUnits("5", 18),
           0,
-          "None",
           "TestURI"
         );
 
@@ -167,7 +157,6 @@ describe("BookingContract", function () {
             20,
             "TestURI",
             50,
-            false,
             false
           )
       ).to.be.revertedWithoutReason();
@@ -180,7 +169,6 @@ describe("BookingContract", function () {
             20,
             "TestURI",
             50,
-            false,
             false
           )
       ).to.be.revertedWithoutReason();
@@ -198,7 +186,6 @@ describe("BookingContract", function () {
             20,
             "TestURI",
             50,
-            false,
             false
           )
       ).to.be.revertedWithoutReason();
@@ -211,7 +198,6 @@ describe("BookingContract", function () {
             20,
             "TestURI",
             50,
-            false,
             false
           )
       ).to.be.revertedWithoutReason();
@@ -252,12 +238,10 @@ describe("BookingContract", function () {
       expect(room.searchRadius).to.equal(50);
 
       await expect(
-        booking
-          .connect(otherAccount)
-          .updateRoom(0, 25, "NewURI", 60, false, false)
+        booking.connect(otherAccount).updateRoom(0, 25, "NewURI", 60, false)
       )
         .to.emit(booking, "RoomUpdated")
-        .withArgs(0, 25, 60, "None", "NewURI");
+        .withArgs(0, 25, 60, "NewURI");
 
       room = await booking.getRoom(0);
       expect(room.position.latitude).to.equal(
@@ -275,7 +259,7 @@ describe("BookingContract", function () {
       const { booking, owner } = await loadFixture(OneRoomPostedFixture);
 
       await expect(
-        booking.connect(owner).updateRoom(0, 25, "NewURI", 60, false, false)
+        booking.connect(owner).updateRoom(0, 25, "NewURI", 60, false)
       ).to.be.revertedWith("Owner is different from one updating.");
     });
 
@@ -283,9 +267,7 @@ describe("BookingContract", function () {
       const { booking, otherAccount } = await loadFixture(OneRoomPostedFixture);
 
       await expect(
-        booking
-          .connect(otherAccount)
-          .updateRoom(1, 25, "NewURI", 60, false, false)
+        booking.connect(otherAccount).updateRoom(1, 25, "NewURI", 60, false)
       ).to.be.revertedWith("Room index does not exist.");
     });
   });
@@ -314,7 +296,6 @@ describe("BookingContract", function () {
             4000000000000000,
             "TestURI",
             50,
-            false,
             false
           )
       )
@@ -325,7 +306,6 @@ describe("BookingContract", function () {
           4000000000000000,
           ethers.utils.parseUnits("50", 18),
           0,
-          "None",
           "TestURI"
         );
 
@@ -1313,8 +1293,7 @@ describe("BookingContract", function () {
           30,
           "TestURI",
           600,
-          true,
-          false
+          true
         );
       expect(await booking.getNumberOfRooms()).to.be.equal(2);
       var newRoom = await booking.getRoom(1);
@@ -1334,8 +1313,7 @@ describe("BookingContract", function () {
           30,
           "TestURI",
           600,
-          true,
-          false
+          true
         );
       expect(await booking.getNumberOfRooms()).to.be.equal(2);
       var newRoom = await booking.getRoom(1);
@@ -1355,8 +1333,7 @@ describe("BookingContract", function () {
           40,
           "TestURI",
           600,
-          true,
-          false
+          true
         );
       expect(await booking.getNumberOfRooms()).to.be.equal(2);
       var newRoom = await booking.getRoom(1);
@@ -1370,8 +1347,7 @@ describe("BookingContract", function () {
           27,
           "TestURI",
           600,
-          true,
-          false
+          true
         );
       expect(await booking.getNumberOfRooms()).to.be.equal(3);
       newRoom = await booking.getRoom(2);
@@ -1397,8 +1373,7 @@ describe("BookingContract", function () {
           40,
           "TestURI",
           600,
-          true,
-          false
+          true
         );
       expect(await booking.getNumberOfRooms()).to.be.equal(2);
       expect(
@@ -1448,8 +1423,7 @@ describe("BookingContract", function () {
           40,
           "TestURI",
           600,
-          true,
-          false
+          true
         );
       expect(await booking.getNumberOfRooms()).to.be.equal(2);
 
@@ -1477,8 +1451,7 @@ describe("BookingContract", function () {
           40,
           "TestURI",
           600,
-          true,
-          false
+          true
         );
 
       await booking
@@ -1489,8 +1462,7 @@ describe("BookingContract", function () {
           40,
           "TestURI",
           600,
-          true,
-          false
+          true
         );
 
       expect(await booking.getNumberOfRooms()).to.be.equal(3);
@@ -1535,4 +1507,6 @@ describe("BookingContract", function () {
       expect(indices[2]).to.be.equal(0);
     });
   });
+
+  describe("Update Amenity tests", function () {});
 });

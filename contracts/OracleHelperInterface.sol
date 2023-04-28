@@ -1,8 +1,6 @@
 pragma solidity ^0.8.9;
 
 interface OracleHelper {
-
-
     event CallAPIWithOracle(
         address indexed invoker,
         string request,
@@ -21,6 +19,7 @@ interface OracleHelper {
     function callMapForRoom(
         string calldata latitude,
         string calldata longitude,
-        string calldata distance
-    ) external view returns (uint[] memory);
+        string calldata distance,
+        uint roomIndex
+    ) external;
 }
