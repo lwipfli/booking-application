@@ -145,12 +145,17 @@ contract BookingContract {
         uint[] calldata amenities
     ) external onlyHelper {
         Room storage room = rooms[roomIndex];
-        Amenity[] memory amenities;
 
-        //room.amenities=
-
+        require(amenities.length <= uint(Amenity.LAST));
+        delete room.amenities;
+        for (uint i = 0; i < amenities.length; i++) {
+            if (amenities[i] > 0) {
+                Amenity amenity = Amenity(i);
+                room.amenities.push(amenity);
+            }
+        }
         // Add new Amenities
-        emit RoomAmenities(roomIndex, turnAmentitesIntoString(amenities));
+        emit RoomAmenities(roomIndex, turnAmentitesIntoString(room.amenities));
     }
 
     function createRoom(

@@ -6,7 +6,8 @@ import "./trigonometry/Complex.sol";
 
 enum Amenity {
     RESTAURANT,
-    CAFE
+    CAFE,
+    LAST
 }
 
 library BookingLib {
