@@ -238,7 +238,7 @@ describe("BookingContract", function () {
       expect(room.searchRadius).to.equal(50);
 
       await expect(
-        booking.connect(otherAccount).updateRoom(0, 25, "NewURI", 60, false)
+        booking.connect(otherAccount).updateRoom(0, 25, "NewURI", 60)
       )
         .to.emit(booking, "RoomUpdated")
         .withArgs(0, 25, 60, "NewURI");
@@ -259,16 +259,16 @@ describe("BookingContract", function () {
       const { booking, owner } = await loadFixture(OneRoomPostedFixture);
 
       await expect(
-        booking.connect(owner).updateRoom(0, 25, "NewURI", 60, false)
-      ).to.be.revertedWith("Owner is different from one updating.");
+        booking.connect(owner).updateRoom(0, 25, "NewURI", 60)
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if room does not exist.", async function () {
       const { booking, otherAccount } = await loadFixture(OneRoomPostedFixture);
 
       await expect(
-        booking.connect(otherAccount).updateRoom(1, 25, "NewURI", 60, false)
-      ).to.be.revertedWith("Room index does not exist.");
+        booking.connect(otherAccount).updateRoom(1, 25, "NewURI", 60)
+      ).to.be.revertedWithoutReason();
     });
   });
 
@@ -280,7 +280,7 @@ describe("BookingContract", function () {
 
       await expect(
         booking.connect(otherAccount).bookRoom(0, bookingDateTimestamp, 1)
-      ).to.be.revertedWith("Room index does not exist.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Book room successfully, should increase balance of owner.", async function () {
@@ -358,7 +358,7 @@ describe("BookingContract", function () {
 
       await expect(
         booking.connect(otherAccount).bookRoom(0, bookingDateTimestamp, 1)
-      ).to.be.revertedWith("Room is not bookable at the current time.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if booking for zero days.", async function () {
@@ -368,7 +368,7 @@ describe("BookingContract", function () {
 
       await expect(
         booking.connect(otherAccount).bookRoom(0, bookingDateTimestamp, 0)
-      ).to.be.revertedWith("Cannot book room for zero days.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert booking if payment not enough.", async function () {
@@ -380,7 +380,7 @@ describe("BookingContract", function () {
         booking.connect(otherAccount).bookRoom(0, bookingDateTimestamp, 1, {
           value: ethers.utils.parseUnits("1.0", 0), // 1 gwei
         })
-      ).to.be.revertedWith("Payment is not enough for room.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert overlapping booking.", async function () {
@@ -406,35 +406,35 @@ describe("BookingContract", function () {
         booking.connect(owner).bookRoom(0, bookingDateTimestamp - 2, 2, {
           value: ethers.utils.parseUnits("40.0", 0),
         })
-      ).to.be.revertedWith("Room alredy booked at the time.");
+      ).to.be.revertedWithoutReason();
 
       // Starting after and ending before
       await expect(
         booking.connect(owner).bookRoom(0, bookingDateTimestamp + 2, 1, {
           value: ethers.utils.parseUnits("20.0", 0),
         })
-      ).to.be.revertedWith("Room alredy booked at the time.");
+      ).to.be.revertedWithoutReason();
 
       // Starting after and ending after
       await expect(
         booking.connect(owner).bookRoom(0, bookingDateTimestamp + 2, 2, {
           value: ethers.utils.parseUnits("40.0", 0),
         })
-      ).to.be.revertedWith("Room alredy booked at the time.");
+      ).to.be.revertedWithoutReason();
 
       //Starting before and ending after
       await expect(
         booking.connect(owner).bookRoom(0, bookingDateTimestamp - 2, 3, {
           value: ethers.utils.parseUnits("60.0", 0),
         })
-      ).to.be.revertedWith("Room alredy booked at the time.");
+      ).to.be.revertedWithoutReason();
 
       // The same time
       await expect(
         booking.connect(owner).bookRoom(0, bookingDateTimestamp, 2, {
           value: ethers.utils.parseUnits("40.0", 0),
         })
-      ).to.be.revertedWith("Room alredy booked at the time.");
+      ).to.be.revertedWithoutReason();
     });
   });
 
@@ -445,7 +445,7 @@ describe("BookingContract", function () {
       // Cannot change room bookable if no room exists.
       await expect(
         booking.connect(otherAccount).setRoomBookale(0, false)
-      ).to.be.revertedWith("Room index does not exist.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if someone different from owner tries to change bookable.", async function () {
@@ -453,7 +453,7 @@ describe("BookingContract", function () {
 
       await expect(
         booking.connect(owner).setRoomBookale(0, false)
-      ).to.be.revertedWith("Owner is different from one updating.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Change room booking successfully.", async function () {
@@ -483,9 +483,9 @@ describe("BookingContract", function () {
         await loadFixture(OneRoomBookedFixture);
 
       // Cannot change room bookable if no room exists.
-      await expect(booking.connect(owner).checkIn(1)).to.be.revertedWith(
-        "Room index does not exist."
-      );
+      await expect(
+        booking.connect(owner).checkIn(1)
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if no booking for this owner.", async function () {
@@ -497,7 +497,7 @@ describe("BookingContract", function () {
         booking.connect(otherAccount).checkIn(0, {
           value: ethers.utils.parseUnits("10.0", 0), // 10 gwei
         })
-      ).to.be.revertedWith("No booking for this owner.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should check in successfull.", async function () {
@@ -529,7 +529,7 @@ describe("BookingContract", function () {
         booking.connect(owner).checkIn(0, {
           value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
         })
-      ).to.be.revertedWith("Room is already checked in by other occupant.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if not enough depot.", async function () {
@@ -540,7 +540,7 @@ describe("BookingContract", function () {
         booking.connect(owner).checkIn(0, {
           value: ethers.utils.parseUnits("5.0", 0), // 5 gwei
         })
-      ).to.be.revertedWith("Not enough depot.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if outside of check in window.", async function () {
@@ -552,9 +552,7 @@ describe("BookingContract", function () {
         booking.connect(owner).checkIn(0, {
           value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
         })
-      ).to.be.revertedWith(
-        "Cannot checkin due to being outside checkin window."
-      );
+      ).to.be.revertedWithoutReason();
 
       // Overshot check in time
       await time.increaseTo(newBookingDateTimestamp + 432000);
@@ -562,9 +560,7 @@ describe("BookingContract", function () {
         booking.connect(owner).checkIn(0, {
           value: ethers.utils.parseUnits("10.0", 0), // 5 gwei
         })
-      ).to.be.revertedWith(
-        "Cannot checkin due to being outside checkin window."
-      );
+      ).to.be.revertedWithoutReason();
     });
   });
 
@@ -573,9 +569,9 @@ describe("BookingContract", function () {
       const { booking, owner, otherAccount, newBookingDateTimestamp } =
         await loadFixture(OneRoomBookedFixture);
 
-      await expect(booking.connect(owner).checkOut(1)).to.be.revertedWith(
-        "Room index does not exist."
-      );
+      await expect(
+        booking.connect(owner).checkOut(1)
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if no booking for owner found found.", async function () {
@@ -584,16 +580,16 @@ describe("BookingContract", function () {
 
       await expect(
         booking.connect(otherAccount).checkOut(0)
-      ).to.be.revertedWith("No booking for this owner.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if not checked in.", async function () {
       const { booking, owner, otherAccount, newBookingDateTimestamp } =
         await loadFixture(OneRoomBookedFixture);
 
-      await expect(booking.connect(owner).checkOut(0)).to.be.revertedWith(
-        "Room has not been checked in."
-      );
+      await expect(
+        booking.connect(owner).checkOut(0)
+      ).to.be.revertedWithoutReason();
     });
 
     it("Room checkout successfull.", async function () {
@@ -640,7 +636,7 @@ describe("BookingContract", function () {
 
       await expect(
         booking.connect(owner).forceFullEviction(1, 1)
-      ).to.be.revertedWith("Room index does not exist.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if not owner room", async function () {
@@ -649,7 +645,7 @@ describe("BookingContract", function () {
 
       await expect(
         booking.connect(owner).forceFullEviction(0, 0)
-      ).to.be.revertedWith("Not owner of room.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if booking does not exist.", async function () {
@@ -658,7 +654,7 @@ describe("BookingContract", function () {
 
       await expect(
         booking.connect(otherAccount).forceFullEviction(0, 1)
-      ).to.be.revertedWith("Booking does not exist.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if room is not occupied.", async function () {
@@ -667,7 +663,7 @@ describe("BookingContract", function () {
 
       await expect(
         booking.connect(otherAccount).forceFullEviction(0, 0)
-      ).to.be.revertedWith("Room is not occupied.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Should revert if not enough time has passed for eviction.", async function () {
@@ -676,7 +672,7 @@ describe("BookingContract", function () {
 
       await expect(
         booking.connect(otherAccount).forceFullEviction(0, 0)
-      ).to.be.revertedWith("Not enough time passed for eviction.");
+      ).to.be.revertedWithoutReason();
     });
 
     it("Forcefull eviction successfull.", async function () {
@@ -1508,5 +1504,16 @@ describe("BookingContract", function () {
     });
   });
 
-  describe("Update Amenity tests", function () {});
+  /*
+  describe("Update Amenity tests", function () {
+    it("No amenities in newly posted room.", async function () {
+      const { booking, owner, otherAccount, bookingDateTimestamp } =
+        await loadFixture(OneRoomPostedFixture);
+      expect(await booking.getNumberOfRooms()).to.be.equal(1);
+
+      //var amenities = await booking.checkRoomAmenities(0);
+      //console.log("Amenities of room 0: " + amenities);
+    });
+  });
+  */
 });

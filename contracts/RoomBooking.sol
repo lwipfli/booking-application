@@ -13,7 +13,7 @@ enum Amenity {
 library BookingLib {
     using PRBMathSD59x18 for int256;
 
-    function atan2Approx(int256 x, int256 y) internal pure returns (int256) {
+    function atan2Approx(int256 x, int256 y) public pure returns (int256) {
         // From https://github.com/NovakDistributed/macroverse/blob/master/contracts/RealMath.sol
         int256 result;
 
@@ -46,7 +46,7 @@ library BookingLib {
         return result;
     }
 
-    function atanSmall(int256 x) internal pure returns (int256) {
+    function atanSmall(int256 x) public pure returns (int256) {
         // From https://github.com/NovakDistributed/macroverse/blob/master/contracts/RealMath.sol
         int256 x_squared = PRBMathSD59x18.pow(x, PRBMathSD59x18.fromInt(2));
         return
@@ -71,11 +71,11 @@ library BookingLib {
             );
     }
 
-    function atan2(int256 x, int256 y) internal pure returns (int256) {
+    function atan2(int256 x, int256 y) public pure returns (int256) {
         return Complex.p_atan2(x, y);
     }
 
-    function tangent(uint256 x) internal pure returns (uint256) {
+    function tangent(uint256 x) public pure returns (uint256) {
         return
             uint256(
                 PRBMathSD59x18.div(Trigonometry.sin(x), Trigonometry.cos(x))
@@ -219,6 +219,30 @@ library BookingLib {
             );
     }
 
+    function turnAmentitesIntoString(
+        Amenity[] memory amenities
+    ) public pure returns (string memory) {
+        if (amenities.length == 0) {
+            return "None";
+        }
+        string memory output;
+        string memory placeholder;
+        for (uint i = 0; i < amenities.length; i++) {
+            if (amenities[i] == Amenity.RESTAURANT) {
+                placeholder = "restaurant";
+            }
+            if (amenities[i] == Amenity.CAFE) {
+                placeholder = "cafe";
+            }
+            if (i == 0) {
+                output = placeholder;
+            } else {
+                output = string(abi.encodePacked(output, ", ", placeholder));
+            }
+        }
+        return output;
+    }
+
     function convertInt256ToString(
         int256 value
     ) public pure returns (string memory) {
@@ -282,6 +306,24 @@ library BookingLib {
                     Strings.toString(uint(fractal))
                 )
             );
+    }
+
+    function getAmenities(
+        uint[] calldata amenities
+    ) public pure returns (Amenity[] memory) {
+        uint counter = 0;
+        for (uint i = 0; i < amenities.length; i++) {
+            if (amenities[i] > 0) {
+                counter++;
+            }
+        }
+        Amenity[] memory amenit = new Amenity[](counter);
+        for (uint i = 0; i < amenities.length; i++) {
+            if (amenities[i] > 0) {
+                amenit[i] = Amenity(i);
+            }
+        }
+        return amenit;
     }
 }
 struct Room {
