@@ -43,19 +43,23 @@ contract BookingContract {
         _;
     }
 
-    address public owner;
+    address private owner;
     address private helper;
 
     Room[] public rooms;
 
     mapping(address => uint[]) public roomsCreatedByOwners;
-    mapping(address => uint) public pendingWithdrawals;
+    mapping(address => uint) private pendingWithdrawals;
 
-    uint public distanceSearchRadius;
+    uint private distanceSearchRadius;
 
     constructor() {
         owner = msg.sender;
         distanceSearchRadius = 500;
+    }
+
+    function getOwner() public view returns (address) {
+        return owner;
     }
 
     function updateSearchDistance(uint distance) public onlyOwner {

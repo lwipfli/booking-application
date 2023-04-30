@@ -88,7 +88,7 @@ describe("BookingContract", function () {
     it("Should set the right owner", async function () {
       const { booking, owner } = await loadFixture(deployBasicFixture);
 
-      expect(await booking.owner()).to.equal(owner.address);
+      expect(await booking.getOwner()).to.equal(owner.address);
     });
     it("Uint conversion.", async function () {
       const { libTest, owner, otherAccount } = await loadFixture(
