@@ -15,6 +15,7 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
     event RequestFulfilled(bytes32 indexed requestId, uint256[] resultArray);
 
     uint private versionNumber;
+    uint requestCounter;
 
     address public parentContract;
 
@@ -29,21 +30,84 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
         address oracleAddress
     ) ConfirmedOwner(parentContract) {
         versionNumber = 1;
+        requestCounter=0;
         setChainlinkToken(linkTokenAddress);
         setChainlinkOracle(oracleAddress);
         jobId = "JOBID";
         fee = (1 * LINK_DIVISIBILITY) / 10;
     }
 
-    function callMapForRoom(
+    function callMapForRoom (
         string calldata latitude,
         string calldata longitude,
         string calldata distance,
         uint roomIndex
-    ) external {}
+    ) onlyOwner external {
+        Chainlink.Request memory req = buildChainlinkRequest(
+            jobId,
+            address(this),
+            this.fulfillMultipleParameters.selector
+        );
 
-    function deliverMapResponse() internal returns (bool) {
-        return true;
+
+            string memory restaurantget = string(
+                abi.encodePacked(
+                    'https://www.overpass-api.de/api/interpreter?data=[out:json];nwr[',
+                    '"',
+                    "amenity",
+                    '"',
+                    "~",
+                    '"',
+                    "restaurant",
+                    '"',
+                    "](around:",
+                    distance,
+                    ',',
+                    latitude,
+                    ',',
+                    longitude,
+                    ");out%20count;"
+                )
+            );
+
+            string memory cafeget = string(
+                abi.encodePacked(
+                    'https://www.overpass-api.de/api/interpreter?data=[out:json];nwr[',
+                    '"',
+                    "amenity",
+                    '"',
+                    "~",
+                    '"',
+                    "cafe",
+                    '"',
+                    "](around:",
+                    distance,
+                    ',',
+                    latitude,
+                    ',',
+                    longitude,
+                    ");out%20count;"
+                )
+            );
+
+        req.add(
+            "get",
+            restaurantget
+        );
+
+        req.add(
+            "get",
+            cafeget
+        );
+
+
+    }
+
+    function fulfillMultipleParameters(bytes32 _requestId,
+        uint256[] calldata amenityIndexes) public recordChainlinkFulfillment(_requestId) {
+        
+
+
     }
 
     function getVersionNumber() external view returns (uint) {
