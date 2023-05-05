@@ -17,6 +17,7 @@ interface OracleHelper {
     function getVersionNumber() external view returns (uint);
 
     function callMapForRoom(
+        address origin,
         string calldata latitude,
         string calldata longitude,
         string calldata distance,

@@ -27,21 +27,41 @@ describe("OracleMock", function () {
     return { owner, otherAccount, tokenMock, oracleMock };
   }
 
-  async function deployHelperFixture() {
+  async function deployHelperAndBookingFixture() {
     const { owner, otherAccount, tokenMock, oracleMock } = await loadFixture(
       deployMockOracleFixture
     );
 
+    const Lib = await ethers.getContractFactory("BookingLib");
+    const lib = await Lib.deploy();
+    await lib.deployed();
+
+    const BookingContract = await ethers.getContractFactory("BookingContract", {
+      signer: otherAccount[0],
+      libraries: {
+        BookingLib: lib.address,
+      },
+    });
+    const booking = await BookingContract.deploy();
+    await booking.deployed();
+
     const helperMockContract = await ethers.getContractFactory("HelperV1");
     const helperMockV1 = await helperMockContract
       .connect(otherAccount)
-      .deploy(otherAccount.address, tokenMock.address, oracleMock.address);
+      .deploy(booking.address, tokenMock.address, oracleMock.address);
 
     await tokenMock
       .connect(owner)
       .transfer(helperMockV1.address, ethers.utils.parseUnits("3", 17));
 
-    return { owner, otherAccount, tokenMock, oracleMock, helperMockV1 };
+    return {
+      owner,
+      otherAccount,
+      tokenMock,
+      oracleMock,
+      helperMockV1,
+      booking,
+    };
   }
 
   describe("Deployment of token mock.", function () {
@@ -70,10 +90,28 @@ describe("OracleMock", function () {
   describe("Deployment of helper mock.", function () {
     it("Should deploy helper mock with correct balance.", async function () {
       const { owner, otherAccount, tokenMock, oracleMock, helperMockV1 } =
-        await loadFixture(deployHelperFixture);
+        await loadFixture(deployHelperAndBookingFixture);
       expect(await tokenMock.balanceOf(helperMockV1.address)).to.equal(
         ethers.utils.parseUnits("3", 17)
       );
     });
   });
+
+  describe("Deployment of helper mock.", function () {
+    it("Should deploy helper mock with correct balance.", async function () {
+      const {
+        owner,
+        otherAccount,
+        tokenMock,
+        oracleMock,
+        helperMockV1,
+        booking,
+      } = await loadFixture(deployHelperAndBookingFixture);
+      expect(await tokenMock.balanceOf(helperMockV1.address)).to.equal(
+        ethers.utils.parseUnits("3", 17)
+      );
+    });
+  });
+
+  describe("Test helper call.", function () {});
 });
