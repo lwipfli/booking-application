@@ -30,6 +30,11 @@ Run tests:
 npx hardhat test
 ```
 
+Clean cache
+```
+npx hardhat clean
+```
+
 Check contract sizes after compilation:
 ```
 npx hardhat size-contracts

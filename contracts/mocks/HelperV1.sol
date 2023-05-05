@@ -3,6 +3,7 @@ pragma solidity ^0.8.9;
 import "./../OracleHelperInterface.sol";
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
+import "./../BookingContract.sol";
 
 // Adapted from https://docs.chain.link/any-api/get-request/examples/multi-variable-responses/ and https://docs.chain.link/any-api/get-request/examples/array-response
 
@@ -18,6 +19,8 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
     uint requestCounter;
 
     address public parentContract;
+
+    mapping(bytes32 => uint) private roomIndexPerReqId;
 
     modifier onlyParent() {
         require((msg.sender == parentContract));
@@ -48,7 +51,6 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
             address(this),
             this.fulfillMultipleParameters.selector
         );
-
 
             string memory restaurantget = string(
                 abi.encodePacked(
@@ -94,20 +96,23 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
             "get",
             restaurantget
         );
-
+        // Path corresponds to elements[0].tags.total
+        req.add("pathRestaurant", "elements,0,tags,total");
         req.add(
             "get",
             cafeget
         );
-
-
+        req.add("pathCafe", "elements,0,tags,total");
+        sendChainlinkRequest(req, fee);
+        roomIndexPerReqId[req.id]=roomIndex;
     }
 
     function fulfillMultipleParameters(bytes32 _requestId,
-        uint256[] calldata amenityIndexes) public recordChainlinkFulfillment(_requestId) {
-        
-
-
+         uint restaurant, uint cafe) public recordChainlinkFulfillment(_requestId) {
+            uint[] memory result = new uint[](2);
+            result[0]= restaurant;
+            result[1]= cafe;
+        BookingContract(parentContract).addAmenitiesToRoom(roomIndexPerReqId[_requestId],result);
     }
 
     function getVersionNumber() external view returns (uint) {
