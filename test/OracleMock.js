@@ -6,16 +6,16 @@ const { BigNumber } = require("ethers");
 
 describe("OracleMock", function () {
   async function deployLinkTokenFixture() {
-    const [owner, otherAccount] = await ethers.getSigners();
+    const [owner, otherAccount, thirdAccount] = await ethers.getSigners();
 
     const tokenMockContract = await ethers.getContractFactory("LinkTokenMock");
     const tokenMock = await tokenMockContract.connect(owner).deploy();
 
-    return { owner, otherAccount, tokenMock };
+    return { owner, otherAccount, thirdAccount, tokenMock };
   }
 
   async function deployMockOracleFixture() {
-    const { owner, otherAccount, tokenMock } = await loadFixture(
+    const { owner, otherAccount, thirdAccount, tokenMock } = await loadFixture(
       deployLinkTokenFixture
     );
 
@@ -24,13 +24,12 @@ describe("OracleMock", function () {
       .connect(owner)
       .deploy(tokenMock.address);
 
-    return { owner, otherAccount, tokenMock, oracleMock };
+    return { owner, otherAccount, thirdAccount, tokenMock, oracleMock };
   }
 
   async function deployHelperAndBookingFixture() {
-    const { owner, otherAccount, tokenMock, oracleMock } = await loadFixture(
-      deployMockOracleFixture
-    );
+    const { owner, otherAccount, thirdAccount, tokenMock, oracleMock } =
+      await loadFixture(deployMockOracleFixture);
 
     const Lib = await ethers.getContractFactory("BookingLib");
     const lib = await Lib.deploy();
@@ -57,6 +56,7 @@ describe("OracleMock", function () {
     return {
       owner,
       otherAccount,
+      thirdAccount,
       tokenMock,
       oracleMock,
       helperMockV1,
@@ -66,9 +66,8 @@ describe("OracleMock", function () {
 
   describe("Deployment of token mock.", function () {
     it("Should set the right owner", async function () {
-      const { owner, otherAccount, tokenMock } = await loadFixture(
-        deployLinkTokenFixture
-      );
+      const { owner, otherAccount, thirdAccount, tokenMock } =
+        await loadFixture(deployLinkTokenFixture);
 
       expect(await tokenMock.balanceOf(owner.address)).to.equal(
         ethers.utils.parseUnits("1", 27)
@@ -89,8 +88,14 @@ describe("OracleMock", function () {
 
   describe("Deployment of helper mock.", function () {
     it("Should deploy helper mock with correct balance.", async function () {
-      const { owner, otherAccount, tokenMock, oracleMock, helperMockV1 } =
-        await loadFixture(deployHelperAndBookingFixture);
+      const {
+        owner,
+        otherAccount,
+        thirdAccount,
+        tokenMock,
+        oracleMock,
+        helperMockV1,
+      } = await loadFixture(deployHelperAndBookingFixture);
       expect(await tokenMock.balanceOf(helperMockV1.address)).to.equal(
         ethers.utils.parseUnits("3", 17)
       );
@@ -102,6 +107,7 @@ describe("OracleMock", function () {
       const {
         owner,
         otherAccount,
+        thirdAccount,
         tokenMock,
         oracleMock,
         helperMockV1,
@@ -113,5 +119,31 @@ describe("OracleMock", function () {
     });
   });
 
-  describe("Test helper call.", function () {});
+  describe("Test helper for racle calls.", function () {
+    it("Test helper usage.", async function () {
+      const {
+        owner,
+        otherAccount,
+        thirdAccount,
+        tokenMock,
+        oracleMock,
+        helperMockV1,
+        booking,
+      } = await loadFixture(deployHelperAndBookingFixture);
+
+      // Post room
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          ethers.utils.parseUnits("50", 18),
+          0,
+          20,
+          "TestURI",
+          500,
+          false
+        );
+
+      expect(await booking.getAmenitiesOfRoom(0)).to.be.equals("None");
+    });
+  });
 });

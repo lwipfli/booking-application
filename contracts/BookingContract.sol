@@ -2,6 +2,8 @@ pragma solidity ^0.8.9;
 
 import "./RoomBooking.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
+import "./OracleHelperInterface.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract BookingContract {
     using PRBMathSD59x18 for int256;
@@ -131,10 +133,23 @@ contract BookingContract {
         return BookingLib.convertInt256ToString(value);
     }
 
-    function updateAmenities(uint roomIndex) external view returns (bool) {
+    function updateAmenities(uint roomIndex) public returns (bool) {
         Room storage room = rooms[roomIndex];
         require(room.owner == msg.sender);
         // Send helper request
+
+        OracleHelper(helper).callMapForRoom(
+            msg.sender,
+            BookingLib.convertInt256ToString(
+                rooms[roomIndex].position.latitude
+            ),
+            BookingLib.convertInt256ToString(
+                rooms[roomIndex].position.longitude
+            ),
+            Strings.toString(rooms[roomIndex].searchRadius),
+            roomIndex
+        );
+
         return true;
     }
 
@@ -237,6 +252,12 @@ contract BookingContract {
         uint roomIndex
     ) public view roomIndexCheck(roomIndex) returns (Booking[] memory) {
         return rooms[roomIndex].bookings;
+    }
+
+    function getAmenitiesOfRoom(
+        uint roomIndex
+    ) public view returns (string memory) {
+        return BookingLib.turnAmentitesIntoString(rooms[roomIndex].amenities);
     }
 
     function overlapsCurrentBookings(
