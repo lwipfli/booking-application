@@ -151,7 +151,7 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
         bytes32 _requestId,
         uint restaurant,
         uint cafe
-    ) public recordChainlinkFulfillment(_requestId) {
+    ) public recordChainlinkFulfillment(_requestId) returns (bool) {
         uint[] memory result = new uint[](2);
         result[0] = restaurant;
         result[1] = cafe;
@@ -159,9 +159,15 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
             roomIndexPerReqId[_requestId],
             result
         );
+
+        return true;
     }
 
     function getVersionNumber() external view returns (uint) {
         return versionNumber;
+    }
+
+    function getRequestId(uint count) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(this, count));
     }
 }

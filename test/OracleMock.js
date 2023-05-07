@@ -2,7 +2,7 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
-const { BigNumber } = require("ethers");
+const { BigNumber, utils } = require("ethers");
 
 describe("OracleMock", function () {
   async function deployLinkTokenFixture() {
@@ -54,6 +54,47 @@ describe("OracleMock", function () {
     await tokenMock
       .connect(owner)
       .transfer(otherAccount.address, ethers.utils.parseUnits("3", 17));
+
+    return {
+      owner,
+      otherAccount,
+      thirdAccount,
+      tokenMock,
+      oracleMock,
+      helperMockV1,
+      booking,
+    };
+  }
+
+  async function prepareUpdateFixture() {
+    const {
+      owner,
+      otherAccount,
+      thirdAccount,
+      tokenMock,
+      oracleMock,
+      helperMockV1,
+      booking,
+    } = await loadFixture(deployHelperAndBookingFixture);
+
+    // Post room
+    await booking
+      .connect(otherAccount)
+      .postRoom(
+        ethers.utils.parseUnits("50", 18),
+        0,
+        20,
+        "TestURI",
+        500,
+        false
+      );
+
+    await tokenMock
+      .connect(otherAccount)
+      .approve(helperMockV1.address, ethers.utils.parseUnits("1", 17));
+    await helperMockV1
+      .connect(otherAccount)
+      .chargeLinkBalance(ethers.utils.parseUnits("1", 17));
 
     return {
       owner,
@@ -182,6 +223,38 @@ describe("OracleMock", function () {
       );
     });
 
-    it("Helper should send request.", async function () {});
+    it("Helper should send not send update request if not owner of room.", async function () {
+      const {
+        owner,
+        otherAccount,
+        thirdAccount,
+        tokenMock,
+        oracleMock,
+        helperMockV1,
+        booking,
+      } = await loadFixture(prepareUpdateFixture);
+
+      await expect(
+        booking.connect(owner).updateAmenities(0)
+      ).to.be.revertedWithoutReason();
+    });
+
+    it("Helper should send update request.", async function () {
+      const {
+        owner,
+        otherAccount,
+        thirdAccount,
+        tokenMock,
+        oracleMock,
+        helperMockV1,
+        booking,
+      } = await loadFixture(prepareUpdateFixture);
+
+      var reqId1 = await helperMockV1.getRequestId(1);
+
+      await expect(booking.connect(otherAccount).updateAmenities(0))
+        .to.emit(helperMockV1, "ChainlinkRequested")
+        .withArgs(reqId1);
+    });
   });
 });
