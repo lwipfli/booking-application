@@ -76,8 +76,7 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
         uint amount = linkBalance[msg.sender];
         linkBalance[msg.sender] = 0;
 
-        LinkTokenInterface(chainlinkTokenAddress()).transferFrom(
-            address(this),
+        LinkTokenInterface(chainlinkTokenAddress()).transfer(
             msg.sender,
             amount
         );

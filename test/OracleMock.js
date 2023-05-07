@@ -49,9 +49,11 @@ describe("OracleMock", function () {
       .connect(otherAccount)
       .deploy(booking.address, tokenMock.address, oracleMock.address);
 
+    await booking.connect(owner).setHelper(helperMockV1.address);
+
     await tokenMock
       .connect(owner)
-      .transfer(helperMockV1.address, ethers.utils.parseUnits("3", 17));
+      .transfer(otherAccount.address, ethers.utils.parseUnits("3", 17));
 
     return {
       owner,
@@ -95,32 +97,18 @@ describe("OracleMock", function () {
         tokenMock,
         oracleMock,
         helperMockV1,
-      } = await loadFixture(deployHelperAndBookingFixture);
-      expect(await tokenMock.balanceOf(helperMockV1.address)).to.equal(
-        ethers.utils.parseUnits("3", 17)
-      );
-    });
-  });
-
-  describe("Deployment of helper mock.", function () {
-    it("Should deploy helper mock with correct balance.", async function () {
-      const {
-        owner,
-        otherAccount,
-        thirdAccount,
-        tokenMock,
-        oracleMock,
-        helperMockV1,
         booking,
       } = await loadFixture(deployHelperAndBookingFixture);
-      expect(await tokenMock.balanceOf(helperMockV1.address)).to.equal(
+      expect(await tokenMock.balanceOf(otherAccount.address)).to.equal(
         ethers.utils.parseUnits("3", 17)
       );
+      expect(await helperMockV1.owner()).to.be.equals(booking.address);
+      expect(await booking.getHelper()).to.be.equals(helperMockV1.address);
     });
   });
 
-  describe("Test helper for racle calls.", function () {
-    it("Test helper usage.", async function () {
+  describe("Test helper for oracle calls.", function () {
+    it("User should be able to charge and withdraw link from helper if allowed.", async function () {
       const {
         owner,
         otherAccount,
@@ -144,6 +132,56 @@ describe("OracleMock", function () {
         );
 
       expect(await booking.getAmenitiesOfRoom(0)).to.be.equals("None");
+
+      // Revert due to missing link.
+      await expect(
+        booking.connect(otherAccount).updateAmenities(0)
+      ).to.be.revertedWithoutReason();
+
+      expect(
+        await tokenMock.allowance(otherAccount.address, helperMockV1.address)
+      ).to.be.equal(0);
+      expect(await tokenMock.balanceOf(helperMockV1.address)).to.equal(0);
+      // Make sure that helper is allowed to transfer link from user
+      await tokenMock
+        .connect(otherAccount)
+        .approve(helperMockV1.address, ethers.utils.parseUnits("1", 17));
+
+      expect(
+        await tokenMock.allowance(otherAccount.address, helperMockV1.address)
+      ).to.be.equal(ethers.utils.parseUnits("1", 17));
+
+      expect(
+        await helperMockV1.connect(otherAccount).checkLinkBalance()
+      ).to.be.equal(0);
+
+      // Charge helper with link
+      await helperMockV1
+        .connect(otherAccount)
+        .chargeLinkBalance(ethers.utils.parseUnits("1", 17));
+      expect(
+        await helperMockV1.connect(otherAccount).checkLinkBalance()
+      ).to.be.equal(ethers.utils.parseUnits("1", 17));
+
+      expect(await tokenMock.balanceOf(helperMockV1.address)).to.equal(
+        ethers.utils.parseUnits("1", 17)
+      );
+      expect(await tokenMock.balanceOf(otherAccount.address)).to.equal(
+        ethers.utils.parseUnits("2", 17)
+      );
+
+      // Withdraw Link again
+      await helperMockV1.connect(otherAccount).withdrawLink();
+
+      expect(
+        await helperMockV1.connect(otherAccount).checkLinkBalance()
+      ).to.be.equal(0);
+      expect(await tokenMock.balanceOf(helperMockV1.address)).to.equal(0);
+      expect(await tokenMock.balanceOf(otherAccount.address)).to.equal(
+        ethers.utils.parseUnits("3", 17)
+      );
     });
+
+    it("Helper should send request.", async function () {});
   });
 });
