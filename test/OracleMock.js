@@ -239,7 +239,7 @@ describe("OracleMock", function () {
       ).to.be.revertedWithoutReason();
     });
 
-    it("Helper should send update request.", async function () {
+    it("Helper should send update request, and oracle responds successfully to request.", async function () {
       const {
         owner,
         otherAccount,
@@ -251,10 +251,17 @@ describe("OracleMock", function () {
       } = await loadFixture(prepareUpdateFixture);
 
       var reqId1 = await helperMockV1.getRequestId(1);
+      var selector = await helperMockV1.getFulfillSelector();
 
       await expect(booking.connect(otherAccount).updateAmenities(0))
         .to.emit(helperMockV1, "ChainlinkRequested")
         .withArgs(reqId1);
+
+      await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 0, 1))
+        .to.emit(oracleMock, "OracleRequestFulfilled")
+        .withArgs(helperMockV1.address, selector, reqId1, 0, 1);
+
+      //expect(await booking.getAmenitiesOfRoom(0)).to.not.be.equals("None");
     });
   });
 });

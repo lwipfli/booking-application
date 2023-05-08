@@ -4,6 +4,14 @@ pragma solidity ^0.6.7;
 import "./MockOracleAdapted.sol";
 
 contract OracleMock is MockOracleAdapted {
+    event OracleRequestFulfilled(
+        address callbackAddr,
+        bytes4 callbackFunctionId,
+        bytes32 indexed requestId,
+        uint256 restaurant,
+        uint cafe
+    );
+
     constructor(address _link) public MockOracleAdapted(_link) {}
 
     function fulfillHelperRequest(
@@ -25,6 +33,16 @@ contract OracleMock is MockOracleAdapted {
                 restaurant,
                 cafe
             )
+        );
+
+        require(success, "Helper call was not successful.");
+
+        emit OracleRequestFulfilled(
+            req.callbackAddr,
+            req.callbackFunctionId,
+            _requestId,
+            restaurant,
+            cafe
         );
         return success;
     }

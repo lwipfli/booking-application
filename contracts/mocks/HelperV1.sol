@@ -13,7 +13,11 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
     bytes32 private jobId;
     uint256 private fee;
 
-    event RequestFulfilled(bytes32 indexed requestId, uint256[] resultArray);
+    event RequestFulfilled(
+        uint indexed roomIndex,
+        bytes32 indexed requestId,
+        uint256[] resultArray
+    );
 
     uint private versionNumber;
     uint requestCounter;
@@ -159,7 +163,11 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
             roomIndexPerReqId[_requestId],
             result
         );
-
+        emit RequestFulfilled(
+            roomIndexPerReqId[_requestId],
+            _requestId,
+            result
+        );
         return true;
     }
 
@@ -169,5 +177,9 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
 
     function getRequestId(uint count) public view returns (bytes32) {
         return keccak256(abi.encodePacked(this, count));
+    }
+
+    function getFulfillSelector() public view returns (bytes4 selector) {
+        return this.fulfillMultipleParameters.selector;
     }
 }
