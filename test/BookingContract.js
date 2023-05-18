@@ -1503,17 +1503,4 @@ describe("BookingContract", function () {
       expect(indices[2]).to.be.equal(0);
     });
   });
-
-  /*
-  describe("Update Amenity tests", function () {
-    it("No amenities in newly posted room.", async function () {
-      const { booking, owner, otherAccount, bookingDateTimestamp } =
-        await loadFixture(OneRoomPostedFixture);
-      expect(await booking.getNumberOfRooms()).to.be.equal(1);
-
-      //var amenities = await booking.checkRoomAmenities(0);
-      //console.log("Amenities of room 0: " + amenities);
-    });
-  });
-  */
 });
