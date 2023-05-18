@@ -9,43 +9,43 @@ module.exports = {
     compilers: [
       {
         version: "0.8.17",
-        settings:{
+        settings: {
           optimizer: {
             enabled: true,
             runs: 2000,
             //details: { yul: false },
           },
-        }
+        },
       },
       {
         version: "0.7.6",
-        settings:{
+        settings: {
           optimizer: {
             enabled: true,
             runs: 2000,
             //details: { yul: false },
           },
-        }
+        },
       },
       {
         version: "0.6.7",
-        settings:{
+        settings: {
           optimizer: {
             enabled: true,
             runs: 2000,
             //details: { yul: false },
           },
-        }
+        },
       },
       {
         version: "0.4.26",
-        settings:{
+        settings: {
           optimizer: {
             enabled: true,
             runs: 2000,
             //details: { yul: false },
           },
-        }
+        },
       },
     ],
   },
@@ -55,7 +55,6 @@ module.exports = {
       disambiguatePaths: true,
       runOnCompile: true,
       strict: true,
-    }
+    },
   },
 };
-

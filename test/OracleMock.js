@@ -3,6 +3,7 @@ const { ethers } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 const { BigNumber, utils } = require("ethers");
+const { web3 } = require("web3");
 
 describe("OracleMock", function () {
   async function deployLinkTokenFixture() {
@@ -257,11 +258,26 @@ describe("OracleMock", function () {
         .to.emit(helperMockV1, "ChainlinkRequested")
         .withArgs(reqId1);
 
+      var storedRequest = await oracleMock.getRequest(reqId1);
+      expect(helperMockV1.address).to.be.equal(storedRequest.callbackAddr);
+      expect(selector).to.be.equal(storedRequest.callbackFunctionId);
+
       await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 0, 1))
         .to.emit(oracleMock, "OracleRequestFulfilled")
         .withArgs(helperMockV1.address, selector, reqId1, 0, 1);
 
-      //expect(await booking.getAmenitiesOfRoom(0)).to.not.be.equals("None");
+      var result = await helperMockV1.getCurrentRoomAmenities(0);
+      expect(result[0]).to.be.equal(0);
+      expect(result[1]).to.be.equal(1);
+
+      var parentContractOfHelper = await helperMockV1.connect(owner).owner();
+      expect(parentContractOfHelper).to.be.equal(booking.address);
+
+      await helperMockV1.connect(owner).updateAmenities(0);
+
+      var currentAmenities = await booking.getAmenitiesOfRoom(0);
+      expect(currentAmenities).to.not.be.equals("None");
+      expect(currentAmenities).to.be.equals("cafe");
     });
   });
 });

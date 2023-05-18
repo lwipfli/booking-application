@@ -4,8 +4,9 @@ import "./RoomBooking.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "./OracleHelperInterface.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "./BookingInterface.sol";
 
-contract BookingContract {
+contract BookingContract is BookingInterface {
     using PRBMathSD59x18 for int256;
     // Events
     event RoomPosted(
@@ -155,7 +156,7 @@ contract BookingContract {
 
     function addAmenitiesToRoom(
         uint roomIndex,
-        uint[] calldata amenities
+        uint[] memory amenities
     ) external {
         Room storage room = rooms[roomIndex];
         require(msg.sender == helper);

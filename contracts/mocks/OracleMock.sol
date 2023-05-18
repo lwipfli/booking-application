@@ -1,4 +1,5 @@
 pragma solidity ^0.6.7;
+pragma experimental ABIEncoderV2;
 
 // Use https://github.com/smartcontractkit/hardhat-starter-kit/blob/main/contracts/test/MockOracle.sol as basis for oracle mocking.
 import "./MockOracleAdapted.sol";
@@ -16,17 +17,14 @@ contract OracleMock is MockOracleAdapted {
 
     function fulfillHelperRequest(
         bytes32 _requestId,
-        uint restaurant,
-        uint cafe
+        uint256 restaurant,
+        uint256 cafe
     ) external isValidRequest(_requestId) returns (bool) {
         Request memory req = commitments[_requestId];
-        delete commitments[_requestId];
-        require(
-            gasleft() >= MINIMUM_CONSUMER_GAS_LIMIT,
-            "Must provide consumer enough gas"
-        );
 
-        (bool success, ) = req.callbackAddr.call(
+        require(gasleft() >= MINIMUM_CONSUMER_GAS_LIMIT);
+
+        (bool success, ) = req.callbackAddr.call{gas: 10000000000}(
             abi.encodeWithSelector(
                 req.callbackFunctionId,
                 _requestId,
@@ -35,8 +33,8 @@ contract OracleMock is MockOracleAdapted {
             )
         );
 
-        require(success, "Helper call was not successful.");
-
+        require(success, "Remote call unsuccessfull.");
+        delete commitments[_requestId];
         emit OracleRequestFulfilled(
             req.callbackAddr,
             req.callbackFunctionId,
@@ -45,5 +43,11 @@ contract OracleMock is MockOracleAdapted {
             cafe
         );
         return success;
+    }
+
+    function getRequest(
+        bytes32 _requestId
+    ) public view returns (Request memory) {
+        return commitments[_requestId];
     }
 }

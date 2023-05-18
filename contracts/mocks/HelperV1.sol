@@ -22,10 +22,10 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
     uint private versionNumber;
     uint requestCounter;
 
-    address public parentContract;
+    //address public parentContract;
 
     mapping(bytes32 => uint) private roomIndexPerReqId;
-
+    mapping(uint => uint256[]) private amenitiesPerRoomIndex;
     mapping(address => uint) private linkBalance;
     uint private totalLinkBalance;
 
@@ -153,33 +153,44 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
 
     function fulfillMultipleParameters(
         bytes32 _requestId,
-        uint restaurant,
-        uint cafe
-    ) public recordChainlinkFulfillment(_requestId) returns (bool) {
+        uint256 restaurant,
+        uint256 cafe
+    ) public recordChainlinkFulfillment(_requestId) {
         uint[] memory result = new uint[](2);
         result[0] = restaurant;
         result[1] = cafe;
-        BookingContract(parentContract).addAmenitiesToRoom(
-            roomIndexPerReqId[_requestId],
-            result
-        );
+
+        amenitiesPerRoomIndex[roomIndexPerReqId[_requestId]] = result;
+
         emit RequestFulfilled(
             roomIndexPerReqId[_requestId],
             _requestId,
             result
         );
-        return true;
     }
 
     function getVersionNumber() external view returns (uint) {
         return versionNumber;
     }
 
-    function getRequestId(uint count) public view returns (bytes32) {
+    function getRequestId(uint256 count) public view returns (bytes32) {
         return keccak256(abi.encodePacked(this, count));
     }
 
     function getFulfillSelector() public view returns (bytes4 selector) {
         return this.fulfillMultipleParameters.selector;
+    }
+
+    function getCurrentRoomAmenities(
+        uint roomIndex
+    ) public view returns (uint256[] memory) {
+        return amenitiesPerRoomIndex[roomIndex];
+    }
+
+    function updateAmenities(uint roomIndex) public {
+        BookingContract(owner()).addAmenitiesToRoom(
+            roomIndex,
+            amenitiesPerRoomIndex[roomIndex]
+        );
     }
 }

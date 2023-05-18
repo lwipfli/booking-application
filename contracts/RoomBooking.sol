@@ -318,9 +318,11 @@ library BookingLib {
             }
         }
         Amenity[] memory amenit = new Amenity[](counter);
-        for (uint i = 0; i < amenities.length; i++) {
+        uint secondCounter = 0;
+        for (uint i = 0; secondCounter < counter; i++) {
             if (amenities[i] > 0) {
-                amenit[i] = Amenity(i);
+                amenit[secondCounter] = Amenity(i);
+                secondCounter++;
             }
         }
         return amenit;
