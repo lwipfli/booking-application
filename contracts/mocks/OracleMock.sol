@@ -24,7 +24,7 @@ contract OracleMock is MockOracleAdapted {
 
         require(gasleft() >= MINIMUM_CONSUMER_GAS_LIMIT);
 
-        (bool success, ) = req.callbackAddr.call{gas: 10000000000}(
+        (bool success, ) = req.callbackAddr.call(
             abi.encodeWithSelector(
                 req.callbackFunctionId,
                 _requestId,

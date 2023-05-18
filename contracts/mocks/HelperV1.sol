@@ -25,7 +25,6 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
     //address public parentContract;
 
     mapping(bytes32 => uint) private roomIndexPerReqId;
-    mapping(uint => uint256[]) private amenitiesPerRoomIndex;
     mapping(address => uint) private linkBalance;
     uint private totalLinkBalance;
 
@@ -160,7 +159,10 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
         result[0] = restaurant;
         result[1] = cafe;
 
-        amenitiesPerRoomIndex[roomIndexPerReqId[_requestId]] = result;
+        BookingContract(owner()).addAmenitiesToRoom(
+            roomIndexPerReqId[_requestId],
+            result
+        );
 
         emit RequestFulfilled(
             roomIndexPerReqId[_requestId],
@@ -179,18 +181,5 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
 
     function getFulfillSelector() public view returns (bytes4 selector) {
         return this.fulfillMultipleParameters.selector;
-    }
-
-    function getCurrentRoomAmenities(
-        uint roomIndex
-    ) public view returns (uint256[] memory) {
-        return amenitiesPerRoomIndex[roomIndex];
-    }
-
-    function updateAmenities(uint roomIndex) public {
-        BookingContract(owner()).addAmenitiesToRoom(
-            roomIndex,
-            amenitiesPerRoomIndex[roomIndex]
-        );
     }
 }

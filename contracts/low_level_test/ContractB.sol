@@ -21,7 +21,7 @@ contract ContractB {
         bytes4 selector
     ) public returns (bool) {
         bool success = false;
-        (success, ) = counterAddress.call{gas: 10000000000}(
+        (success, ) = counterAddress.call(
             abi.encodeWithSelector(selector, incrementValue)
         );
         require(success, "Contract A should have been incremented");
@@ -32,7 +32,7 @@ contract ContractB {
         bytes4 selector
     ) public returns (bool) {
         bool success = false;
-        (success, ) = counterAddress.call{gas: 10000000000}(
+        (success, ) = counterAddress.call(
             abi.encodeWithSelector(selector, incrementValue, incrementValue)
         );
         require(success, "Contract A should have been incremented");

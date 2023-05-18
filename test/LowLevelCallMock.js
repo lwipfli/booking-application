@@ -129,12 +129,6 @@ describe("LowLevelCallMock", function () {
         .connect(otherAccount)
         .getSelectorIncrementBoth();
 
-      /*
-      await contractB.connect(otherAccount).deposit({
-        value: ethers.utils.parseEther("1.0"),
-      });
-      */
-
       await contractB
         .connect(otherAccount)
         .incrementTwo(1, selectorForIncrementTwo);

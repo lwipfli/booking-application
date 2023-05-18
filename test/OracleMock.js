@@ -266,18 +266,87 @@ describe("OracleMock", function () {
         .to.emit(oracleMock, "OracleRequestFulfilled")
         .withArgs(helperMockV1.address, selector, reqId1, 0, 1);
 
-      var result = await helperMockV1.getCurrentRoomAmenities(0);
-      expect(result[0]).to.be.equal(0);
-      expect(result[1]).to.be.equal(1);
-
-      var parentContractOfHelper = await helperMockV1.connect(owner).owner();
-      expect(parentContractOfHelper).to.be.equal(booking.address);
-
-      await helperMockV1.connect(owner).updateAmenities(0);
-
       var currentAmenities = await booking.getAmenitiesOfRoom(0);
       expect(currentAmenities).to.not.be.equals("None");
       expect(currentAmenities).to.be.equals("cafe");
+    });
+
+    it("Successfully update room with restaurant", async function () {
+      const {
+        owner,
+        otherAccount,
+        thirdAccount,
+        tokenMock,
+        oracleMock,
+        helperMockV1,
+        booking,
+      } = await loadFixture(prepareUpdateFixture);
+
+      var reqId1 = await helperMockV1.getRequestId(1);
+      var selector = await helperMockV1.getFulfillSelector();
+
+      await expect(booking.connect(otherAccount).updateAmenities(0))
+        .to.emit(helperMockV1, "ChainlinkRequested")
+        .withArgs(reqId1);
+
+      await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 1, 0))
+        .to.emit(oracleMock, "OracleRequestFulfilled")
+        .withArgs(helperMockV1.address, selector, reqId1, 1, 0);
+
+      var currentAmenities = await booking.getAmenitiesOfRoom(0);
+      expect(currentAmenities).to.be.equals("restaurant");
+    });
+
+    it("Successfully update room with both amenities", async function () {
+      const {
+        owner,
+        otherAccount,
+        thirdAccount,
+        tokenMock,
+        oracleMock,
+        helperMockV1,
+        booking,
+      } = await loadFixture(prepareUpdateFixture);
+
+      var reqId1 = await helperMockV1.getRequestId(1);
+      var selector = await helperMockV1.getFulfillSelector();
+
+      await expect(booking.connect(otherAccount).updateAmenities(0))
+        .to.emit(helperMockV1, "ChainlinkRequested")
+        .withArgs(reqId1);
+
+      await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 1, 1))
+        .to.emit(oracleMock, "OracleRequestFulfilled")
+        .withArgs(helperMockV1.address, selector, reqId1, 1, 1);
+
+      var currentAmenities = await booking.getAmenitiesOfRoom(0);
+      expect(currentAmenities).to.be.equals("restaurant, cafe");
+    });
+
+    it("Successfully update room with no amenities", async function () {
+      const {
+        owner,
+        otherAccount,
+        thirdAccount,
+        tokenMock,
+        oracleMock,
+        helperMockV1,
+        booking,
+      } = await loadFixture(prepareUpdateFixture);
+
+      var reqId1 = await helperMockV1.getRequestId(1);
+      var selector = await helperMockV1.getFulfillSelector();
+
+      await expect(booking.connect(otherAccount).updateAmenities(0))
+        .to.emit(helperMockV1, "ChainlinkRequested")
+        .withArgs(reqId1);
+
+      await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 0, 0))
+        .to.emit(oracleMock, "OracleRequestFulfilled")
+        .withArgs(helperMockV1.address, selector, reqId1, 0, 0);
+
+      var currentAmenities = await booking.getAmenitiesOfRoom(0);
+      expect(currentAmenities).to.be.equals("None");
     });
   });
 });
