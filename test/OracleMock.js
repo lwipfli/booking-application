@@ -149,7 +149,7 @@ describe("OracleMock", function () {
     });
   });
 
-  describe("Test helper for oracle calls.", function () {
+  describe("Test helper functionality for oracle calls.", function () {
     it("User should be able to charge and withdraw link from helper if allowed.", async function () {
       const {
         owner,
@@ -323,7 +323,7 @@ describe("OracleMock", function () {
       expect(currentAmenities).to.be.equals("restaurant, cafe");
     });
 
-    it("Successfully update room with no amenities", async function () {
+    it("Successfully update room with both amenities if there are more than one", async function () {
       const {
         owner,
         otherAccount,
@@ -341,12 +341,95 @@ describe("OracleMock", function () {
         .to.emit(helperMockV1, "ChainlinkRequested")
         .withArgs(reqId1);
 
-      await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 0, 0))
+      await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 3, 4))
         .to.emit(oracleMock, "OracleRequestFulfilled")
-        .withArgs(helperMockV1.address, selector, reqId1, 0, 0);
+        .withArgs(helperMockV1.address, selector, reqId1, 3, 4);
 
       var currentAmenities = await booking.getAmenitiesOfRoom(0);
-      expect(currentAmenities).to.be.equals("None");
+      expect(currentAmenities).to.be.equals("restaurant, cafe");
+    });
+
+    it("Helper contract should not be changebale by others.", async function () {
+      const {
+        owner,
+        otherAccount,
+        thirdAccount,
+        tokenMock,
+        oracleMock,
+        helperMockV1,
+        booking,
+      } = await loadFixture(prepareUpdateFixture);
+
+      const helperMockContract = await ethers.getContractFactory("HelperV2");
+      const helperMockV2 = await helperMockContract
+        .connect(otherAccount)
+        .deploy(booking.address, tokenMock.address, oracleMock.address);
+
+      await expect(booking.connect(owner).setHelper(helperMockV2.address)).to.be
+        .revertedWithoutReason;
+    });
+
+    it("Helper contract should is successfully changed to second version, and still work with new room.", async function () {
+      const {
+        owner,
+        otherAccount,
+        thirdAccount,
+        tokenMock,
+        oracleMock,
+        helperMockV1,
+        booking,
+      } = await loadFixture(prepareUpdateFixture);
+
+      // Post second room
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          ethers.utils.parseUnits("52", 18),
+          ethers.utils.parseUnits("30", 18),
+          20,
+          "TestURI",
+          500,
+          false
+        );
+
+      const helperMockContract = await ethers.getContractFactory("HelperV2");
+      const helperMockV2 = await helperMockContract
+        .connect(owner)
+        .deploy(booking.address, tokenMock.address, oracleMock.address);
+
+      await booking.connect(owner).setHelper(helperMockV2.address);
+      helperOfBooking = await booking.getHelper();
+      expect(helperOfBooking).to.be.equal(helperMockV2.address);
+
+      await tokenMock
+        .connect(otherAccount)
+        .approve(helperMockV2.address, ethers.utils.parseUnits("2", 17));
+      await helperMockV2
+        .connect(otherAccount)
+        .chargeLinkBalance(ethers.utils.parseUnits("2", 17));
+
+      expect(await booking.getAmenitiesOfRoom(1)).to.be.equals("None");
+
+      var reqId1 = await helperMockV2.getRequestId(1);
+      var selector = await helperMockV2.getFulfillSelector();
+
+      await expect(booking.connect(otherAccount).updateAmenities(1))
+        .to.emit(helperMockV2, "ChainlinkRequested")
+        .withArgs(reqId1);
+
+      var roomOfRequest = await helperMockV2.getRoomIndexOfRequest(reqId1);
+      expect(roomOfRequest).to.be.equal(1);
+
+      await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 1, 0))
+        .to.emit(helperMockV2, "RequestFulfilled")
+        .withArgs(1, reqId1, [1, 0]);
+
+      var currentAmenities = await booking.getAmenitiesOfRoom(1);
+      expect(currentAmenities).to.be.equals("restaurant");
+
+      expect(
+        await helperMockV2.connect(otherAccount).checkLinkBalance()
+      ).to.be.equals(ethers.utils.parseUnits("1", 17));
     });
   });
 });

@@ -19,10 +19,8 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
         uint256[] resultArray
     );
 
-    uint private versionNumber;
+    uint versionNumber;
     uint requestCounter;
-
-    //address public parentContract;
 
     mapping(bytes32 => uint) private roomIndexPerReqId;
     mapping(address => uint) private linkBalance;
@@ -34,7 +32,7 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
         address oracleAddress
     ) ConfirmedOwner(parentContract) {
         versionNumber = 1;
-        requestCounter = 0;
+        requestCounter = 1;
         setChainlinkToken(linkTokenAddress);
         setChainlinkOracle(oracleAddress);
         jobId = "JOBID";
@@ -147,7 +145,8 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
         req.add("pathCafe", "elements,0,tags,total");
         linkBalance[origin] -= fee;
         sendChainlinkRequest(req, fee);
-        roomIndexPerReqId[req.id] = roomIndex;
+        roomIndexPerReqId[getRequestId(requestCounter)] = roomIndex;
+        requestCounter++;
     }
 
     function fulfillMultipleParameters(
@@ -181,5 +180,11 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
 
     function getFulfillSelector() public view returns (bytes4 selector) {
         return this.fulfillMultipleParameters.selector;
+    }
+
+    function getRoomIndexOfRequest(
+        bytes32 requestID
+    ) public view returns (uint) {
+        return roomIndexPerReqId[requestID];
     }
 }
