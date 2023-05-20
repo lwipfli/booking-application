@@ -1,6 +1,6 @@
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
+const { ethers, upgrades } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 const { BigNumber } = require("ethers");
@@ -42,8 +42,13 @@ describe("BookingContract", function () {
       },
     });
     provider = ethers.provider;
-    const booking = await BookingContract.deploy();
-    await booking.deployed();
+
+    //const booking = await BookingContract.deploy();
+    const booking = await upgrades.deployProxy(BookingContract, {
+      initializer: "initialize",
+      unsafeAllow: ["external-library-linking"],
+    });
+    //await booking.deployed();
 
     return { booking, owner, otherAccount, bookingDateTimestamp, lib };
   }

@@ -42,8 +42,13 @@ describe("OracleMock", function () {
         BookingLib: lib.address,
       },
     });
-    const booking = await BookingContract.deploy();
-    await booking.deployed();
+
+    const booking = await upgrades.deployProxy(BookingContract, {
+      initializer: "initialize",
+      unsafeAllow: ["external-library-linking"],
+    });
+    //const booking = await BookingContract.deploy();
+    //await booking.deployed();
 
     const helperMockContract = await ethers.getContractFactory("HelperV1");
     const helperMockV1 = await helperMockContract

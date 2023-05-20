@@ -5,8 +5,10 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
 import "./OracleHelperInterface.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./BookingInterface.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/OwnableInterface.sol";
 
-contract BookingContract is BookingInterface {
+contract BookingContract is BookingInterface, Initializable {
     using PRBMathSD59x18 for int256;
     // Events
     event RoomPosted(
@@ -36,16 +38,19 @@ contract BookingContract is BookingInterface {
     event RoomCheckedIn(uint indexed roomIndex, address indexed booker);
     event RoomCheckedOut(uint indexed roomIndex, address indexed booker);
 
+    // Modifiers
+
     modifier roomIndexCheck(uint roomIndex) {
         require((rooms.length > roomIndex) && (roomIndex >= 0));
         _;
     }
 
     modifier onlyOwner() {
-        require((msg.sender == owner));
+        require((tx.origin == owner));
         _;
     }
 
+    //Storage
     address private owner;
     address private helper;
 
@@ -56,9 +61,24 @@ contract BookingContract is BookingInterface {
 
     uint private distanceSearchRadius;
 
+    function initialize() public initializer {
+        owner = tx.origin;
+        distanceSearchRadius = 500;
+    }
+
+    /*
     constructor() {
         owner = msg.sender;
         distanceSearchRadius = 500;
+    }
+    */
+
+    function changeOwnerOfHelper(address newOwner) public onlyOwner {
+        OwnableInterface(helper).transferOwnership(newOwner);
+    }
+
+    function acceptOwnershipOfHelper() public onlyOwner {
+        OwnableInterface(helper).acceptOwnership();
     }
 
     function getOwner() public view returns (address) {
