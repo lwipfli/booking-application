@@ -10,6 +10,7 @@ import "./../BookingContract.sol";
 contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
     using Chainlink for Chainlink.Request;
 
+    address private parent;
     bytes32 private jobId;
     uint256 private fee;
 
@@ -26,11 +27,17 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
     mapping(address => uint) private linkBalance;
     uint private totalLinkBalance;
 
+    modifier onlyParentContract() {
+        require(msg.sender == parent);
+        _;
+    }
+
     constructor(
         address parentContract,
         address linkTokenAddress,
         address oracleAddress
-    ) ConfirmedOwner(parentContract) {
+    ) ConfirmedOwner(msg.sender) {
+        parent = parentContract;
         versionNumber = 1;
         requestCounter = 1;
         setChainlinkToken(linkTokenAddress);
@@ -89,7 +96,7 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
         string calldata longitude,
         string calldata distance,
         uint roomIndex
-    ) external onlyOwner {
+    ) external onlyParentContract {
         require(linkBalance[origin] >= fee);
 
         Chainlink.Request memory req = buildChainlinkRequest(
@@ -158,7 +165,7 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
         result[0] = restaurant;
         result[1] = cafe;
 
-        BookingContract(owner()).addAmenitiesToRoom(
+        BookingContract(parent).addAmenitiesToRoom(
             roomIndexPerReqId[_requestId],
             result
         );
@@ -186,5 +193,13 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
         bytes32 requestID
     ) public view returns (uint) {
         return roomIndexPerReqId[requestID];
+    }
+
+    function getParentContract() public view returns (address) {
+        return parent;
+    }
+
+    function setParentContract(address newParentContract) public onlyOwner {
+        parent = newParentContract;
     }
 }

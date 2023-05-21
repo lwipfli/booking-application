@@ -497,4 +497,8 @@ contract BookingContract is BookingInterface, Initializable {
         }
         return (false, address(0));
     }
+
+    function getImplementationAddress() external view returns (address) {
+        return address(this);
+    }
 }

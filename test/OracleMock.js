@@ -4,6 +4,7 @@ const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 const { BigNumber, utils } = require("ethers");
 const { web3 } = require("web3");
+//const { getImplementationAddress } = require("@openzeppelin/upgrades-core");
 
 describe("OracleMock", function () {
   async function deployLinkTokenFixture() {
@@ -50,10 +51,12 @@ describe("OracleMock", function () {
     //const booking = await BookingContract.deploy();
     //await booking.deployed();
 
+    const currentImplAddress = await booking.getImplementationAddress();
+
     const helperMockContract = await ethers.getContractFactory("HelperV1");
     const helperMockV1 = await helperMockContract
-      .connect(otherAccount)
-      .deploy(booking.address, tokenMock.address, oracleMock.address);
+      .connect(owner)
+      .deploy(currentImplAddress, tokenMock.address, oracleMock.address);
 
     await booking.connect(owner).setHelper(helperMockV1.address);
 
@@ -114,7 +117,7 @@ describe("OracleMock", function () {
   }
 
   describe("Deployment of token mock.", function () {
-    it("Should set the right owner", async function () {
+    it("Should set the right balance", async function () {
       const { owner, otherAccount, thirdAccount, tokenMock } =
         await loadFixture(deployLinkTokenFixture);
 
@@ -149,7 +152,11 @@ describe("OracleMock", function () {
       expect(await tokenMock.balanceOf(otherAccount.address)).to.equal(
         ethers.utils.parseUnits("3", 17)
       );
-      expect(await helperMockV1.owner()).to.be.equals(booking.address);
+
+      expect(await helperMockV1.owner()).to.be.equals(owner.address);
+      expect(await helperMockV1.getParentContract()).to.be.equals(
+        booking.address
+      );
       expect(await booking.getHelper()).to.be.equals(helperMockV1.address);
     });
   });
@@ -435,6 +442,13 @@ describe("OracleMock", function () {
       expect(
         await helperMockV2.connect(otherAccount).checkLinkBalance()
       ).to.be.equals(ethers.utils.parseUnits("1", 17));
+    });
+  });
+
+  describe("Upgrade main contract and change helper to new one.", function () {
+    it("Successfully change parent of helper.", async function () {
+      const { owner, otherAccount, thirdAccount, tokenMock } =
+        await loadFixture(deployLinkTokenFixture);
     });
   });
 });

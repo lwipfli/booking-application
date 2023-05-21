@@ -5,4 +5,6 @@ interface BookingInterface {
         uint roomIndex,
         uint[] memory amenities
     ) external;
+
+    function getImplementationAddress() external view returns (address);
 }
