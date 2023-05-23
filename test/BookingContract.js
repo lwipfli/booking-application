@@ -358,7 +358,7 @@ describe("BookingContract", function () {
       );
 
       await expect(booking.connect(otherAccount).setRoomBookale(0, false))
-        .to.emit(booking, "RoomBookabeUpdate")
+        .to.emit(booking, "RoomBookableUpdate")
         .withArgs(0, false);
 
       await expect(
@@ -469,13 +469,13 @@ describe("BookingContract", function () {
 
       // Change room bookable successfully.
       await expect(booking.connect(otherAccount).setRoomBookale(0, false))
-        .to.emit(booking, "RoomBookabeUpdate")
+        .to.emit(booking, "RoomBookableUpdate")
         .withArgs(0, false);
 
       room = await booking.getRoom(0);
       expect(room.bookable).to.equal(false);
       await expect(booking.connect(otherAccount).setRoomBookale(0, true))
-        .to.emit(booking, "RoomBookabeUpdate")
+        .to.emit(booking, "RoomBookableUpdate")
         .withArgs(0, true);
       room = await booking.getRoom(0);
       expect(room.bookable).to.equal(true);

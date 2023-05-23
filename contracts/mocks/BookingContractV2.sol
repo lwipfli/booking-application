@@ -28,7 +28,7 @@ contract BookingContractV2 is BookingInterface, Initializable {
 
     event RoomAmenities(uint indexed roomIndex, string amenities);
 
-    event RoomBookabeUpdate(uint indexed roomIndex, bool bookable);
+    event RoomBookableUpdate(uint indexed roomIndex, bool bookable);
     event RoomBooked(
         uint indexed roomIndex,
         address indexed booker,
@@ -328,7 +328,7 @@ contract BookingContractV2 is BookingInterface, Initializable {
         Room storage room = rooms[roomIndex];
         require(room.owner == msg.sender);
         room.bookable = bookable;
-        emit RoomBookabeUpdate(roomIndex, bookable);
+        emit RoomBookableUpdate(roomIndex, bookable);
     }
 
     function getRoom(

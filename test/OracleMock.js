@@ -443,11 +443,4 @@ describe("OracleMock", function () {
       ).to.be.equals(ethers.utils.parseUnits("1", 17));
     });
   });
-
-  describe("Upgrade main contract and change helper to new one.", function () {
-    it("Successfully change parent of helper.", async function () {
-      const { owner, otherAccount, thirdAccount, tokenMock } =
-        await loadFixture(deployLinkTokenFixture);
-    });
-  });
 });

@@ -8,9 +8,22 @@ import "./BookingInterface.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/OwnableInterface.sol";
 
+/// @title POC Room booking contract
+/// @author Lorenzo Wipfli
+/// @notice This contract can be used to post rooms for booking and book them, in addition to using a
+/// Chainlink oracle for amenity information. This contract is a proof-of-concept.
 contract BookingContract is BookingInterface, Initializable {
     using PRBMathSD59x18 for int256;
-    // Events
+
+    /// EVENTS ///
+
+    /// @notice Indicates the posting of a room.
+    /// @param roomIndex Index of the room.
+    /// @param owner Address of the room owner.
+    /// @param pricePerDay Price per day for booking.
+    /// @param latitude Latitude value from -90 to 90 times 10^18.
+    /// @param longitude Longitude value from -180 to 180 times 10^18.
+    /// @param uri URI string for further room information.
     event RoomPosted(
         uint indexed roomIndex,
         address indexed owner,
@@ -19,6 +32,12 @@ contract BookingContract is BookingInterface, Initializable {
         int256 longitude,
         string uri
     );
+
+    /// @notice Indicates updated room offer.
+    /// @param roomIndex Index of the room.
+    /// @param pricePerDay Updated room price per day for booking.
+    /// @param searchRadius Updated search radius for price adaption and amenity search.
+    /// @param uri Updated URI string for further room information.
     event RoomUpdated(
         uint indexed roomIndex,
         uint pricePerDay,
@@ -26,19 +45,28 @@ contract BookingContract is BookingInterface, Initializable {
         string uri
     );
 
+    /// @notice Indicates new room amenities available in surrounding.
+    /// @param roomIndex Index of the room.
+    /// @param amenities Amenities string description of room.
     event RoomAmenities(uint indexed roomIndex, string amenities);
 
-    event RoomBookabeUpdate(uint indexed roomIndex, bool bookable);
+    /// @notice Indicates Changes to specific room bookability.
+    /// @param roomIndex Index of the room.
+    /// @param bookable Truth value of room bookability.
+    event RoomBookableUpdate(uint indexed roomIndex, bool bookable);
+
     event RoomBooked(
         uint indexed roomIndex,
         address indexed booker,
         uint startTime,
         uint endTime
     );
+
     event RoomCheckedIn(uint indexed roomIndex, address indexed booker);
+
     event RoomCheckedOut(uint indexed roomIndex, address indexed booker);
 
-    // Modifiers
+    /// MODIFIERS ///
 
     modifier roomIndexCheck(uint roomIndex) {
         require((rooms.length > roomIndex) && (roomIndex >= 0));
@@ -50,7 +78,8 @@ contract BookingContract is BookingInterface, Initializable {
         _;
     }
 
-    //Storage
+    /// STORAGE ///
+
     address private owner;
     address private helper;
 
@@ -332,7 +361,7 @@ contract BookingContract is BookingInterface, Initializable {
         Room storage room = rooms[roomIndex];
         require(room.owner == msg.sender);
         room.bookable = bookable;
-        emit RoomBookabeUpdate(roomIndex, bookable);
+        emit RoomBookableUpdate(roomIndex, bookable);
     }
 
     function getRoom(
