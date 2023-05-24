@@ -5,6 +5,20 @@ const { time } = require("@nomicfoundation/hardhat-network-helpers");
 const { BigNumber, utils } = require("ethers");
 const { web3 } = require("web3");
 
+async function  logEvents(tx){
+  const emittedEvents = [];
+  const receipt = await tx.wait()
+    receipt.events.forEach(ev => {
+        if (ev.event) {
+            emittedEvents.push({
+                name: ev.event,
+                args: ev.args
+            });
+        }
+    });
+    console.log(`emittedEvents: `, emittedEvents);
+}
+
 describe("OracleMock", function () {
   async function deployLinkTokenFixture() {
     const [owner, otherAccount, thirdAccount] = await ethers.getSigners();
@@ -47,8 +61,6 @@ describe("OracleMock", function () {
       initializer: "initialize",
       unsafeAllow: ["external-library-linking"],
     });
-    //const booking = await BookingContract.deploy();
-    //await booking.deployed();
 
     const currentImplAddress = await booking.getImplementationAddress();
 
@@ -265,7 +277,23 @@ describe("OracleMock", function () {
       var reqId1 = await helperMockV1.getRequestId(1);
       var selector = await helperMockV1.getFulfillSelector();
 
-      await expect(booking.connect(otherAccount).updateAmenities(0))
+      const requestTransaction = await booking.connect(otherAccount).updateAmenities(0);
+      
+      /*
+      const receipt = await requestTransaction.wait();
+      console.log("HERE");
+      console.log(receipt.events.length);
+      console.log(receipt.events[0].event);
+      console.log(receipt.events[0].args);
+      console.log(receipt.events[1].event);
+      console.log(receipt.events[1].args);
+      console.log(receipt.events[2].event);
+      console.log(receipt.events[2].args);
+      console.log(receipt.events[3].event);
+      console.log(receipt.events[3].args);
+      */
+
+      expect(requestTransaction)
         .to.emit(helperMockV1, "ChainlinkRequested")
         .withArgs(reqId1);
 
@@ -273,8 +301,22 @@ describe("OracleMock", function () {
       expect(helperMockV1.address).to.be.equal(storedRequest.callbackAddr);
       expect(selector).to.be.equal(storedRequest.callbackFunctionId);
 
-      await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 0, 1))
-        .to.emit(oracleMock, "OracleRequestFulfilled")
+
+      const requestTransaction2 = await oracleMock.connect(owner).fulfillHelperRequest(reqId1, 0, 1);
+      /*const receipt2 = await requestTransaction2.wait();
+      console.log(receipt2.events.length);
+      console.log(receipt2.events[0].event);
+      console.log(receipt2.events[0].args);
+      console.log(receipt2.events[1].event);
+      console.log(receipt2.events[1].args);
+      console.log(receipt2.events[2].event);
+      console.log(receipt2.events[2].args);
+      console.log(receipt2.events[3].event);
+      console.log(receipt2.events[3].args);
+      */
+
+      expect(requestTransaction2)
+        .to.emit("OracleRequestFulfilled")
         .withArgs(helperMockV1.address, selector, reqId1, 0, 1);
 
       var currentAmenities = await booking.getAmenitiesOfRoom(0);

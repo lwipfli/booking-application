@@ -55,6 +55,11 @@ contract BookingContract is BookingInterface, Initializable {
     /// @param bookable Truth value of room bookability.
     event RoomBookableUpdate(uint indexed roomIndex, bool bookable);
 
+    /// @notice Indicates that a room has been booked for a certain time.
+    /// @param roomIndex Index of the room.
+    /// @param booker Address of the booker.
+    /// @param startTime Start time of booking in unix time.
+    /// @param endTime End time of booking in unix time.
     event RoomBooked(
         uint indexed roomIndex,
         address indexed booker,
@@ -62,17 +67,25 @@ contract BookingContract is BookingInterface, Initializable {
         uint endTime
     );
 
+    /// @notice Indicates that a room has been checked in by booker.
+    /// @param roomIndex Index of the room.
+    /// @param booker Address of the booker.
     event RoomCheckedIn(uint indexed roomIndex, address indexed booker);
 
+    /// @notice Indicates that a room has been checked out by booker.
+    /// @param roomIndex Index of the room.
+    /// @param booker Address of the booker.
     event RoomCheckedOut(uint indexed roomIndex, address indexed booker);
 
     /// MODIFIERS ///
 
+    /// @dev Checks that requested room by index does exist by checking if the index is possible.
     modifier roomIndexCheck(uint roomIndex) {
         require((rooms.length > roomIndex) && (roomIndex >= 0));
         _;
     }
 
+    /// @dev Checks if the transaction origin is the owner of the booking contract.
     modifier onlyOwner() {
         require((tx.origin == owner));
         _;
@@ -90,22 +103,20 @@ contract BookingContract is BookingInterface, Initializable {
 
     uint private distanceSearchRadius;
 
+    /// @dev Initializer function fro OpenZeppeling upgrades
     function initialize() public initializer {
         owner = tx.origin;
         distanceSearchRadius = 500;
     }
 
-    /*
-    constructor() {
-        owner = msg.sender;
-        distanceSearchRadius = 500;
-    }
-    */
-
+    /// @notice Function to change ownership of oracle helper contract.abi
+    /// @dev Should be sued when only main contract is upgraded so that helper can still be used by new contract.
+    /// @param newOwner New owner address of booking contract
     function changeOwnerOfHelper(address newOwner) public onlyOwner {
         OwnableInterface(helper).transferOwnership(newOwner);
     }
 
+    /// @notice 
     function acceptOwnershipOfHelper() public onlyOwner {
         OwnableInterface(helper).acceptOwnership();
     }
