@@ -40,7 +40,6 @@ contract BookingContractV2 is BookingInterface, Initializable {
     event RoomCheckedOut(uint indexed roomIndex, address indexed booker);
 
     // Modifiers
-
     modifier roomIndexCheck(uint roomIndex) {
         require((rooms.length > roomIndex) && (roomIndex >= 0));
         _;

@@ -219,8 +219,6 @@ contract BookingContract is BookingInterface, Initializable {
     function updateAmenities(uint roomIndex) public returns (bool) {
         Room storage room = rooms[roomIndex];
         require(room.owner == msg.sender);
-        // Send helper request
-
         OracleHelper(helper).callMapForRoom(
             msg.sender,
             BookingLib.convertInt256ToString(
@@ -236,6 +234,13 @@ contract BookingContract is BookingInterface, Initializable {
         return true;
     }
 
+    /// @notice Dedictaed function for helper to update room amenities.
+    /// @dev
+    /// - The amenity numbers must be in the same order as the Amenity enum,
+    ///
+    /// and the length of the array cannot be longer than the number of current enums.
+    /// @param roomIndex Index of room to be updated.
+    /// @param amenities Array with number of amenities surrounding the room.
     function addAmenitiesToRoom(
         uint roomIndex,
         uint[] memory amenities
@@ -297,6 +302,16 @@ contract BookingContract is BookingInterface, Initializable {
         return idx;
     }
 
+    /// @notice Books a room for the invoker if possible.
+    /// @dev
+    /// - Room must be bookable.
+    /// - Starting and end time cannot overlap existing booking
+    /// - The payed value must be bigger or equal the cost of price per day times booked days.
+    /// - Emits event RoomBooked.
+    /// - Payment is added to the room owner funds.
+    /// @param roomIndex Index of room to book.
+    /// @param timestamp Unix timestampt of start time for booking.
+    /// @param numberOfDays Number of days to book a room.
     function bookRoom(
         uint roomIndex,
         uint timestamp,
@@ -331,12 +346,17 @@ contract BookingContract is BookingInterface, Initializable {
         booking.depot = 0;
     }
 
+    /// @notice Returns all current bookings of a room.
+    /// @dev - Room must exist.
+    /// @param roomIndex Index of a room.
     function getBookings(
         uint roomIndex
     ) public view roomIndexCheck(roomIndex) returns (Booking[] memory) {
         return rooms[roomIndex].bookings;
     }
 
+    /// @notice Returns amenitites of room as string.
+    /// @param roomIndex Index of a room.
     function getAmenitiesOfRoom(
         uint roomIndex
     ) public view returns (string memory) {
@@ -360,16 +380,27 @@ contract BookingContract is BookingInterface, Initializable {
         return false;
     }
 
+    /// @notice Withdraw all current funds.
     function withdraw() public {
         uint amount = pendingWithdrawals[msg.sender];
         pendingWithdrawals[msg.sender] = 0;
         payable(msg.sender).transfer(amount);
     }
 
+    /// @notice Returns current balance of funds.
     function checkBalance() public view returns (uint) {
         return pendingWithdrawals[msg.sender];
     }
 
+    /// @notice Updates room with the values.
+    /// @dev
+    /// - Room must exist
+    /// - Can only be used by room owner.
+    /// - Emits RoomUpdated event.
+    /// @param roomIndex  Index of room that is updated.
+    /// @param pricePerDay Updated price per day.
+    /// @param uri Updated URI of information for the room.
+    /// @param searchRadius Updated search radius for amenity search.
     function updateRoom(
         uint roomIndex,
         uint pricePerDay,
@@ -387,6 +418,13 @@ contract BookingContract is BookingInterface, Initializable {
         emit RoomUpdated(roomIndex, pricePerDay, searchRadius, uri);
     }
 
+    /// @notice Change room bookability.
+    /// @dev
+    /// - Room must exist
+    /// - Can only be used by room owner
+    /// - Emits RoomBookableUpdate event.
+    /// @param roomIndex Index of room.
+    /// @param bookable New bookable value.
     function setRoomBookale(
         uint roomIndex,
         bool bookable
@@ -397,12 +435,19 @@ contract BookingContract is BookingInterface, Initializable {
         emit RoomBookableUpdate(roomIndex, bookable);
     }
 
+    /// @notice Get a specific room.
+    /// @dev - Room must exist.
+    /// @param roomIndex Index of room.
     function getRoom(
         uint roomIndex
     ) public view roomIndexCheck(roomIndex) returns (Room memory room) {
         return rooms[roomIndex];
     }
 
+    /// @notice Calculates the average price around in a given surrounding from current rooms.
+    /// @param latitude Latitude value from -90 to 90 times 10^18 for precision.
+    /// @param longitude Longitude value from -180 to 180 times 10^18 for precision.
+    /// @param distance Distance for room price consideration.
     function averagePriceToSurrounding(
         int256 latitude,
         int256 longitude,
@@ -432,6 +477,12 @@ contract BookingContract is BookingInterface, Initializable {
         return (price / number);
     }
 
+    /// @notice Returns a selected number of room indices around a given point.
+    /// The selection is dependent on the order of stored rooms, not on the actual distance to the center point.
+    /// @param latitude Latitude value from -90 to 90 times 10^18 for precision.
+    /// @param longitude Longitude value from -180 to 180 times 10^18 for precision.
+    /// @param distance Distance for room price consideration.
+    /// @param maxNumber The maximum nimber of rooms that should be collected.
     function searchForRooms(
         int256 latitude,
         int256 longitude,
@@ -460,6 +511,15 @@ contract BookingContract is BookingInterface, Initializable {
         return indexes;
     }
 
+    /// @notice Check into booked room, with depot payment.
+    /// @dev
+    /// - Room must exist.
+    /// - There must be a booking existent for msg.sender.
+    /// - Room must not be occupied.
+    /// - Depot must be at least half the price per day.
+    /// - Can only check inside booked time.
+    /// - Emits RoomChechedIn event.
+    /// @param roomIndex Index of room.
     function checkIn(uint roomIndex) public payable roomIndexCheck(roomIndex) {
         Room storage room = rooms[roomIndex];
         uint bookingIndex;
@@ -478,6 +538,13 @@ contract BookingContract is BookingInterface, Initializable {
         emit RoomCheckedIn(roomIndex, msg.sender);
     }
 
+    /// @notice Check out of booked room, and receive depot back.
+    /// @dev
+    /// - Booking must exist, for msg.sender.
+    /// - Room must be checked in.
+    /// - Emits RoomCheckedOut event
+    /// - Removes booking afterwards.
+    /// @param roomIndex Index of room.
     function checkOut(uint roomIndex) public roomIndexCheck(roomIndex) {
         Room storage room = rooms[roomIndex];
         uint bookingIndex;
@@ -500,6 +567,16 @@ contract BookingContract is BookingInterface, Initializable {
         roomBookings.pop();
     }
 
+    /// @notice Forcefull room eviction with keeping depot for room owner.
+    /// @dev
+    /// - Room must exist.
+    /// - Can only be used by room owner.
+    /// - Booking must exist, and at least half a day must have past beyond booking end time.
+    /// - If successful gives depot to owner.
+    /// - Emits RoomCheckedOut event
+    /// - Removes booking afterwards.
+    /// @param roomIndex Index of room.
+    /// @param bookingIndex Index of booking that should be evicted.
     function forceFullEviction(
         uint roomIndex,
         uint bookingIndex
@@ -548,6 +625,10 @@ contract BookingContract is BookingInterface, Initializable {
         return false;
     }
 
+    /// @notice Returns address of room occupant if checked in.
+    /// @param roomIndex Index of room.
+    /// @return Bool value if occupied.
+    /// @return Address of occupant.
     function roomOccupant(
         uint roomIndex
     ) public view roomIndexCheck(roomIndex) returns (bool, address) {

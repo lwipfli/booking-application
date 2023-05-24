@@ -85,6 +85,12 @@ library BookingLib {
             );
     }
 
+    /// @notice Calculates approximate distance for two points according to haversine formula.
+    /// @dev See https://www.movable-type.co.uk/scripts/latlong.html
+    /// @param lat1 Latitude value from first point from -90 to 90 times 10^18 for precision.
+    /// @param long1 Longitude value from first point from -180 to 180 times 10^18 for precision.
+    /// @param lat2 Latitude value from second point from -90 to 90 times 10^18 for precision.
+    /// @param long2 Longitude value from second point from -180 to 180 times 10^18 for precision.
     function computeDistanceHaversine(
         int256 lat1,
         int256 long1,
@@ -222,6 +228,9 @@ library BookingLib {
             );
     }
 
+    /// @notice Returns amenity string.
+    /// @dev Currently supports the enums CAFE and RESTAURANT.
+    /// @param amenities Amenity enum array.
     function turnAmentitesIntoString(
         Amenity[] memory amenities
     ) public pure returns (string memory) {
@@ -311,6 +320,9 @@ library BookingLib {
             );
     }
 
+    /// @notice Turns uint array of amenity count int amenity enum array.
+    /// @dev Uint array positions correspond to enum order and length.
+    /// @param amenities Array of amenity count.
     function getAmenities(
         uint[] calldata amenities
     ) public pure returns (Amenity[] memory) {
