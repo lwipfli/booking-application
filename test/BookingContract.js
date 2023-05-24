@@ -137,7 +137,8 @@ describe("BookingContract", function () {
           20,
           ethers.utils.parseUnits("5", 18),
           0,
-          "TestURI"
+          "TestURI",
+          50
         );
 
       expect(await booking.getNumberOfRooms()).to.equal(1);
@@ -311,7 +312,8 @@ describe("BookingContract", function () {
           4000000000000000,
           ethers.utils.parseUnits("50", 18),
           0,
-          "TestURI"
+          "TestURI",
+          50
         );
 
       expect(await booking.connect(otherAccount).checkBalance()).to.equal(0);
@@ -702,36 +704,6 @@ describe("BookingContract", function () {
         .connect(otherAccount)
         .checkBalance();
       expect(previousContractBalance).to.equals(70);
-    });
-  });
-
-  describe("Search distance.", function () {
-    it("Should have the default value after deployment.", async function () {
-      const { booking, owner, otherAccount, newBookingDateTimestamp } =
-        await loadFixture(deployBasicFixture);
-
-      expect(await booking.connect(otherAccount).getSearchDistance()).to.equal(
-        500
-      );
-    });
-
-    it("Should revert if the caller is not the owner.", async function () {
-      const { booking, owner, otherAccount, newBookingDateTimestamp } =
-        await loadFixture(deployBasicFixture);
-
-      await expect(
-        booking.connect(otherAccount).updateSearchDistance(10000)
-      ).to.be.revertedWithoutReason();
-    });
-
-    it("Should update successfully.", async function () {
-      const { booking, owner, otherAccount, newBookingDateTimestamp } =
-        await loadFixture(deployBasicFixture);
-
-      await booking.connect(owner).updateSearchDistance(123456);
-      expect(await booking.connect(otherAccount).getSearchDistance()).to.equal(
-        123456
-      );
     });
   });
 

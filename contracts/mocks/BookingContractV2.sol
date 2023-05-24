@@ -17,7 +17,8 @@ contract BookingContractV2 is BookingInterface, Initializable {
         uint pricePerDay,
         int256 latitude,
         int256 longitude,
-        string uri
+        string uri,
+        uint searchDistance
     );
     event RoomUpdated(
         uint indexed roomIndex,
@@ -59,13 +60,11 @@ contract BookingContractV2 is BookingInterface, Initializable {
     mapping(address => uint[]) public roomsCreatedByOwners;
     mapping(address => uint) private pendingWithdrawals;
 
-    uint private distanceSearchRadius;
 
     string private symbol;
 
     function initialize() public initializer {
         owner = tx.origin;
-        distanceSearchRadius = 500;
         symbol = "Version2";
     }
 
@@ -79,14 +78,6 @@ contract BookingContractV2 is BookingInterface, Initializable {
 
     function getOwner() public view returns (address) {
         return owner;
-    }
-
-    function updateSearchDistance(uint distance) public onlyOwner {
-        distanceSearchRadius = distance;
-    }
-
-    function getSearchDistance() public view returns (uint) {
-        return distanceSearchRadius;
     }
 
     function getNumberOfRooms() public view returns (uint) {
@@ -137,7 +128,7 @@ contract BookingContractV2 is BookingInterface, Initializable {
         // Add unique ID to room.
         addRoomIndex(msg.sender, idx);
 
-        emit RoomPosted(idx, msg.sender, pricePerDay, latitude, longitude, uri);
+        emit RoomPosted(idx, msg.sender, pricePerDay, latitude, longitude, uri, searchRadius);
     }
 
     function addRoomIndex(address roomOwner, uint roomIndex) internal {

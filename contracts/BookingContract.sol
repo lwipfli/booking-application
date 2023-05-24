@@ -24,13 +24,15 @@ contract BookingContract is BookingInterface, Initializable {
     /// @param latitude Latitude value from -90 to 90 times 10^18.
     /// @param longitude Longitude value from -180 to 180 times 10^18.
     /// @param uri URI string for further room information.
+    /// @param searchDistance Distance radius for price adaption and amenity search.
     event RoomPosted(
         uint indexed roomIndex,
         address indexed owner,
         uint pricePerDay,
         int256 latitude,
         int256 longitude,
-        string uri
+        string uri,
+        uint searchDistance
     );
 
     /// @notice Indicates updated room offer.
@@ -101,22 +103,21 @@ contract BookingContract is BookingInterface, Initializable {
     mapping(address => uint[]) public roomsCreatedByOwners;
     mapping(address => uint) private pendingWithdrawals;
 
-    uint private distanceSearchRadius;
 
-    /// @dev Initializer function fro OpenZeppeling upgrades
+    /// @dev Initializer function for OpenZeppeling upgrades
     function initialize() public initializer {
         owner = tx.origin;
-        distanceSearchRadius = 500;
     }
 
-    /// @notice Function to change ownership of oracle helper contract.abi
-    /// @dev Should be sued when only main contract is upgraded so that helper can still be used by new contract.
+    /// @notice Start change ownership of oracle helper contract.
+    /// @dev Should be used when only main contract is upgraded so that helper can still be used by new contract.
     /// @param newOwner New owner address of booking contract
     function changeOwnerOfHelper(address newOwner) public onlyOwner {
         OwnableInterface(helper).transferOwnership(newOwner);
     }
 
-    /// @notice 
+    /// @notice Accept ownership of oracle helper contract if proposed.
+    /// @dev Should be sued when only main contract is upgraded so that helper can still be used by new contract.
     function acceptOwnershipOfHelper() public onlyOwner {
         OwnableInterface(helper).acceptOwnership();
     }
@@ -125,18 +126,12 @@ contract BookingContract is BookingInterface, Initializable {
         return owner;
     }
 
-    function updateSearchDistance(uint distance) public onlyOwner {
-        distanceSearchRadius = distance;
-    }
-
-    function getSearchDistance() public view returns (uint) {
-        return distanceSearchRadius;
-    }
-
     function getNumberOfRooms() public view returns (uint) {
         return rooms.length;
     }
 
+    /// @notice Gives the room indices of the respective owner.
+    /// @param ownerOfRoom Address of room owner.
     function getRoomsByOwner(
         address ownerOfRoom
     ) public view returns (uint[] memory roomList) {
@@ -151,6 +146,22 @@ contract BookingContract is BookingInterface, Initializable {
         return helper;
     }
 
+    /// @notice Post room to contract with sender as owner.
+    /// @dev 
+    /// - Latitude must be between -90 and 90 times 10^18
+    /// - Longitude must be between -180 and 180 times 10^18
+    /// - Price per day must be positive
+    /// - If the price should be adapted, then the room price will be:  (initial_price + average_price)/2.
+    ///   If there are no surrounding rooms, then the price will not be adapted.
+    ///
+    /// Emits RoomPosted event
+    ///
+    /// @param latitude Latitude value of new room.
+    /// @param longitude Longitude value of new room.
+    /// @param pricePerDay Price per day for booking the room.
+    /// @param uri URI of new room for more infromation.
+    /// @param searchRadius Search radius value for amenity search and price adaption.
+    /// @param adaptPrice Bool value if the price should be adapted to sourounding.
     function postRoom(
         int256 latitude,
         int256 longitude,
@@ -181,19 +192,23 @@ contract BookingContract is BookingInterface, Initializable {
         // Add unique ID to room.
         addRoomIndex(msg.sender, idx);
 
-        emit RoomPosted(idx, msg.sender, pricePerDay, latitude, longitude, uri);
+        emit RoomPosted(idx, msg.sender, pricePerDay, latitude, longitude, uri, searchRadius);
     }
 
     function addRoomIndex(address roomOwner, uint roomIndex) internal {
         roomsCreatedByOwners[roomOwner].push(roomIndex);
     }
 
+    /// @notice Converts an integer value into a floating string with 18 floating points
+    /// @param value Integer value in the form of PRBMathSD59x18
     function convertInt256ToString(
         int256 value
     ) public pure returns (string memory) {
         return BookingLib.convertInt256ToString(value);
     }
 
+    /// @notice Make an oracle request to search for amenities.
+    /// @param roomIndex Index of the room that should be updated.
     function updateAmenities(uint roomIndex) public returns (bool) {
         Room storage room = rooms[roomIndex];
         require(room.owner == msg.sender);
