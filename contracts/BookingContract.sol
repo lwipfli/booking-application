@@ -103,7 +103,6 @@ contract BookingContract is BookingInterface, Initializable {
     mapping(address => uint[]) public roomsCreatedByOwners;
     mapping(address => uint) private pendingWithdrawals;
 
-
     /// @dev Initializer function for OpenZeppeling upgrades
     function initialize() public initializer {
         owner = tx.origin;
@@ -147,7 +146,7 @@ contract BookingContract is BookingInterface, Initializable {
     }
 
     /// @notice Post room to contract with sender as owner.
-    /// @dev 
+    /// @dev
     /// - Latitude must be between -90 and 90 times 10^18
     /// - Longitude must be between -180 and 180 times 10^18
     /// - Price per day must be positive
@@ -192,7 +191,15 @@ contract BookingContract is BookingInterface, Initializable {
         // Add unique ID to room.
         addRoomIndex(msg.sender, idx);
 
-        emit RoomPosted(idx, msg.sender, pricePerDay, latitude, longitude, uri, searchRadius);
+        emit RoomPosted(
+            idx,
+            msg.sender,
+            pricePerDay,
+            latitude,
+            longitude,
+            uri,
+            searchRadius
+        );
     }
 
     function addRoomIndex(address roomOwner, uint roomIndex) internal {
@@ -235,7 +242,7 @@ contract BookingContract is BookingInterface, Initializable {
     ) external {
         Room storage room = rooms[roomIndex];
         require(msg.sender == helper);
-        require(amenities.length <= uint(Amenity.LAST));
+        require(amenities.length <= BookingLib.getAmenitySize());
         //delete room.amenities;
         room.amenities = BookingLib.getAmenities(amenities);
         // Add new Amenities
@@ -255,7 +262,7 @@ contract BookingContract is BookingInterface, Initializable {
     ) internal returns (uint) {
         uint idx = rooms.length;
         rooms.push();
-        Amenity[] memory amenities;
+        BookingLib.Amenity[] memory amenities;
         Position memory position;
 
         Room storage room = rooms[idx];

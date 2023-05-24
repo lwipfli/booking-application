@@ -60,7 +60,6 @@ contract BookingContractV2 is BookingInterface, Initializable {
     mapping(address => uint[]) public roomsCreatedByOwners;
     mapping(address => uint) private pendingWithdrawals;
 
-
     string private symbol;
 
     function initialize() public initializer {
@@ -128,7 +127,15 @@ contract BookingContractV2 is BookingInterface, Initializable {
         // Add unique ID to room.
         addRoomIndex(msg.sender, idx);
 
-        emit RoomPosted(idx, msg.sender, pricePerDay, latitude, longitude, uri, searchRadius);
+        emit RoomPosted(
+            idx,
+            msg.sender,
+            pricePerDay,
+            latitude,
+            longitude,
+            uri,
+            searchRadius
+        );
     }
 
     function addRoomIndex(address roomOwner, uint roomIndex) internal {
@@ -167,7 +174,7 @@ contract BookingContractV2 is BookingInterface, Initializable {
     ) external {
         Room storage room = rooms[roomIndex];
         require(msg.sender == helper);
-        require(amenities.length <= uint(Amenity.LAST));
+        require(amenities.length <= BookingLib.getAmenitySize());
         //delete room.amenities;
         room.amenities = BookingLib.getAmenities(amenities);
         // Add new Amenities
@@ -187,7 +194,7 @@ contract BookingContractV2 is BookingInterface, Initializable {
     ) internal returns (uint) {
         uint idx = rooms.length;
         rooms.push();
-        Amenity[] memory amenities;
+        BookingLib.Amenity[] memory amenities;
         Position memory position;
 
         Room storage room = rooms[idx];

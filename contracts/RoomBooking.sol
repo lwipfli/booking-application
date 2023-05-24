@@ -4,14 +4,17 @@ import "./trigonometry/Trigonometry.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "./trigonometry/Complex.sol";
 
-enum Amenity {
-    RESTAURANT,
-    CAFE,
-    LAST
-}
-
 library BookingLib {
     using PRBMathSD59x18 for int256;
+
+    enum Amenity {
+        RESTAURANT,
+        CAFE
+    }
+
+    function getAmenitySize() public pure returns (uint) {
+        return 2;
+    }
 
     function atan2Approx(int256 x, int256 y) public pure returns (int256) {
         // From https://github.com/NovakDistributed/macroverse/blob/master/contracts/RealMath.sol
@@ -335,7 +338,7 @@ struct Room {
     bool bookable;
     uint pricePerDay;
     string uri;
-    Amenity[] amenities;
+    BookingLib.Amenity[] amenities;
     Booking[] bookings;
 }
 
