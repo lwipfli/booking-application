@@ -3,19 +3,20 @@ const { ethers } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 const { BigNumber, utils } = require("ethers");
+const fetch = require("node-fetch");
 
-async function  logEvents(tx){
+async function logEvents(tx) {
   const emittedEvents = [];
-  const receipt = await tx.wait()
-    receipt.events.forEach(ev => {
-        if (ev.event) {
-            emittedEvents.push({
-                name: ev.event,
-                args: ev.args
-            });
-        }
-    });
-    console.log(`emittedEvents: `, emittedEvents);
+  const receipt = await tx.wait();
+  receipt.events.forEach((ev) => {
+    if (ev.event) {
+      emittedEvents.push({
+        name: ev.event,
+        args: ev.args,
+      });
+    }
+  });
+  console.log(`emittedEvents: `, emittedEvents);
 }
 
 describe("OracleMock", function () {
@@ -276,29 +277,25 @@ describe("OracleMock", function () {
       var reqId1 = await helperMockV1.getRequestId(1);
       var selector = await helperMockV1.getFulfillSelector();
 
-      const requestTransaction = await booking.connect(otherAccount).updateAmenities(0);
+      const requestTransaction = await booking
+        .connect(otherAccount)
+        .updateAmenities(0);
 
       const receipt = await requestTransaction.wait();
-
 
       expect(requestTransaction)
         .to.emit(helperMockV1, "ChainlinkRequested")
         .withArgs(reqId1);
 
-        expect(requestTransaction)
-        .to.emit(helperMockV1, "OracleRequest");
-
-        
-
-
-
+      expect(requestTransaction).to.emit(helperMockV1, "OracleRequest");
 
       var storedRequest = await oracleMock.getRequest(reqId1);
       expect(helperMockV1.address).to.be.equal(storedRequest.callbackAddr);
       expect(selector).to.be.equal(storedRequest.callbackFunctionId);
 
-
-      const requestTransaction2 = await oracleMock.connect(owner).fulfillHelperRequest(reqId1, 0, 1);
+      const requestTransaction2 = await oracleMock
+        .connect(owner)
+        .fulfillHelperRequest(reqId1, 0, 1);
 
       const receipt2 = await requestTransaction2.wait();
 
@@ -474,6 +471,15 @@ describe("OracleMock", function () {
       expect(
         await helperMockV2.connect(otherAccount).checkLinkBalance()
       ).to.be.equals(ethers.utils.parseUnits("1", 17));
+    });
+
+    it("OverPassAPi HTTP request test.", async function () {
+      let response = await fetch(
+        'https://www.overpass-api.de/api/interpreter?data=[out:json];nwr["amenity"~"cafe"](around: 500,43.0,-6,44,-5);out%20count;'
+      );
+      let data = await response.json();
+
+      console.log(data.elements[0].tags.total);
     });
   });
 });
