@@ -3,7 +3,6 @@ const { ethers } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 const { BigNumber, utils } = require("ethers");
-const { web3 } = require("web3");
 
 async function  logEvents(tx){
   const emittedEvents = [];
@@ -278,24 +277,21 @@ describe("OracleMock", function () {
       var selector = await helperMockV1.getFulfillSelector();
 
       const requestTransaction = await booking.connect(otherAccount).updateAmenities(0);
-      
-      /*
+
       const receipt = await requestTransaction.wait();
-      console.log("HERE");
-      console.log(receipt.events.length);
-      console.log(receipt.events[0].event);
-      console.log(receipt.events[0].args);
-      console.log(receipt.events[1].event);
-      console.log(receipt.events[1].args);
-      console.log(receipt.events[2].event);
-      console.log(receipt.events[2].args);
-      console.log(receipt.events[3].event);
-      console.log(receipt.events[3].args);
-      */
+
 
       expect(requestTransaction)
         .to.emit(helperMockV1, "ChainlinkRequested")
         .withArgs(reqId1);
+
+        expect(requestTransaction)
+        .to.emit(helperMockV1, "OracleRequest");
+
+        
+
+
+
 
       var storedRequest = await oracleMock.getRequest(reqId1);
       expect(helperMockV1.address).to.be.equal(storedRequest.callbackAddr);
@@ -303,17 +299,12 @@ describe("OracleMock", function () {
 
 
       const requestTransaction2 = await oracleMock.connect(owner).fulfillHelperRequest(reqId1, 0, 1);
-      /*const receipt2 = await requestTransaction2.wait();
-      console.log(receipt2.events.length);
-      console.log(receipt2.events[0].event);
-      console.log(receipt2.events[0].args);
-      console.log(receipt2.events[1].event);
-      console.log(receipt2.events[1].args);
-      console.log(receipt2.events[2].event);
-      console.log(receipt2.events[2].args);
-      console.log(receipt2.events[3].event);
-      console.log(receipt2.events[3].args);
-      */
+
+      const receipt2 = await requestTransaction2.wait();
+
+      for (const event of receipt2.events) {
+        console.log(`Event ${event.event} with args ${event.args}`);
+      }
 
       expect(requestTransaction2)
         .to.emit("OracleRequestFulfilled")

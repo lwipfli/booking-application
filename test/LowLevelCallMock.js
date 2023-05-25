@@ -3,7 +3,6 @@ const { ethers } = require("hardhat");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 const { BigNumber, utils } = require("ethers");
-const { web3 } = require("web3");
 
 describe("LowLevelCallMock", function () {
   describe("Test low level call.", function () {

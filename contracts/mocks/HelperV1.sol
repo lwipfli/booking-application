@@ -13,7 +13,7 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
     address private parent;
     bytes32 private jobId;
     uint256 private fee;
-
+    
     event RequestFulfilled(
         uint indexed roomIndex,
         bytes32 indexed requestId,
@@ -25,6 +25,7 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
 
     mapping(bytes32 => uint) private roomIndexPerReqId;
     mapping(address => uint) private linkBalance;
+
     uint private totalLinkBalance;
 
     modifier onlyParentContract() {
