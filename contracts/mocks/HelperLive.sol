@@ -4,6 +4,7 @@ import "./../OracleHelperInterface.sol";
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 import "./../BookingContract.sol";
+import "hardhat/console.sol";
 
 // Adapted from https://docs.chain.link/any-api/get-request/examples/multi-variable-responses/ and https://docs.chain.link/any-api/get-request/examples/array-response
 
@@ -23,8 +24,8 @@ contract HelperLive is OracleHelper, ChainlinkClient, ConfirmedOwner {
     uint versionNumber;
     uint requestCounter;
 
-    string lastRestaurantGet;
-    string lastCafeGet;
+    string private lastRestaurantGet = "None";
+    string private lastCafeGet = "None";
 
     mapping(bytes32 => uint) private roomIndexPerReqId;
     mapping(address => uint) private linkBalance;
@@ -129,6 +130,7 @@ contract HelperLive is OracleHelper, ChainlinkClient, ConfirmedOwner {
             )
         );
         lastRestaurantGet = restaurantget;
+        //console.log("Url for restaurant: '%s'", restaurantget);
 
         string memory cafeget = string(
             abi.encodePacked(
@@ -150,6 +152,7 @@ contract HelperLive is OracleHelper, ChainlinkClient, ConfirmedOwner {
             )
         );
         lastCafeGet = cafeget;
+        //console.log("Url for cafe: '%s'", cafeget);
 
         req.add("get", restaurantget);
         // Path corresponds to elements[0].tags.total
@@ -207,5 +210,13 @@ contract HelperLive is OracleHelper, ChainlinkClient, ConfirmedOwner {
 
     function setParentContract(address newParentContract) public onlyOwner {
         parent = newParentContract;
+    }
+
+    function getRestaurantUrl() public view returns (string memory) {
+        return lastRestaurantGet;
+    }
+
+    function getCafeUrl() public view returns (string memory) {
+        return lastCafeGet;
     }
 }

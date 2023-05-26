@@ -5,20 +5,6 @@ const { time } = require("@nomicfoundation/hardhat-network-helpers");
 const { BigNumber, utils } = require("ethers");
 const fetch = require("node-fetch");
 
-async function logEvents(tx) {
-  const emittedEvents = [];
-  const receipt = await tx.wait();
-  receipt.events.forEach((ev) => {
-    if (ev.event) {
-      emittedEvents.push({
-        name: ev.event,
-        args: ev.args,
-      });
-    }
-  });
-  console.log(`emittedEvents: `, emittedEvents);
-}
-
 describe("OracleMock", function () {
   async function deployLinkTokenFixture() {
     const [owner, otherAccount, thirdAccount] = await ethers.getSigners();
@@ -473,13 +459,107 @@ describe("OracleMock", function () {
       ).to.be.equals(ethers.utils.parseUnits("1", 17));
     });
 
-    it("OverPassAPi HTTP request test.", async function () {
-      let response = await fetch(
-        'https://www.overpass-api.de/api/interpreter?data=[out:json];nwr["amenity"~"cafe"](around: 500,43.0,-6,44,-5);out%20count;'
-      );
-      let data = await response.json();
+    it("Oracle test with live api response from Overpass API.", async function () {
+      const { owner, otherAccount, thirdAccount, tokenMock, oracleMock } =
+        await loadFixture(deployMockOracleFixture);
 
-      console.log(data.elements[0].tags.total);
+      const Lib = await ethers.getContractFactory("BookingLib");
+      const lib = await Lib.deploy();
+      await lib.deployed();
+
+      const BookingContract = await ethers.getContractFactory(
+        "BookingContract",
+        {
+          signer: otherAccount[0],
+          libraries: {
+            BookingLib: lib.address,
+          },
+        }
+      );
+
+      const booking = await upgrades.deployProxy(BookingContract, {
+        initializer: "initialize",
+        unsafeAllow: ["external-library-linking"],
+      });
+
+      const currentImplAddress = await booking.getImplementationAddress();
+
+      const helperMockContract = await ethers.getContractFactory("HelperLive");
+      const helperMockLive = await helperMockContract
+        .connect(owner)
+        .deploy(currentImplAddress, tokenMock.address, oracleMock.address);
+
+      await booking.connect(owner).setHelper(helperMockLive.address);
+
+      await tokenMock
+        .connect(owner)
+        .transfer(otherAccount.address, ethers.utils.parseUnits("3", 17));
+
+      // Post room
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          ethers.utils.parseUnits("50", 18),
+          0,
+          20,
+          "TestURI",
+          500,
+          false
+        );
+
+      await tokenMock
+        .connect(otherAccount)
+        .approve(helperMockLive.address, ethers.utils.parseUnits("1", 17));
+      await helperMockLive
+        .connect(otherAccount)
+        .chargeLinkBalance(ethers.utils.parseUnits("1", 17));
+
+      var reqId1 = await helperMockLive.getRequestId(1);
+      var selector = await helperMockLive.getFulfillSelector();
+
+      await expect(booking.connect(otherAccount).updateAmenities(0))
+        .to.emit(helperMockLive, "ChainlinkRequested")
+        .withArgs(reqId1);
+
+      // Get API response
+      var restaurantTotalHttp = await helperMockLive.getRestaurantUrl();
+      var cafeTotalHttp = await helperMockLive.getCafeUrl();
+
+      let restaurantResponse = await fetch(restaurantTotalHttp);
+      let restaurantData = await restaurantResponse.json();
+      var restaurantTotal = restaurantData.elements[0].tags.total;
+
+      let cafeResponse = await fetch(cafeTotalHttp);
+      let cafeData = await cafeResponse.json();
+      var cafeTotal = cafeData.elements[0].tags.total;
+
+      await expect(
+        oracleMock
+          .connect(owner)
+          .fulfillHelperRequest(reqId1, restaurantTotal, cafeTotal)
+      )
+        .to.emit(oracleMock, "OracleRequestFulfilled")
+        .withArgs(
+          helperMockLive.address,
+          selector,
+          reqId1,
+          restaurantTotal,
+          cafeTotal
+        );
+
+      var currentAmenities = await booking.getAmenitiesOfRoom(0);
+      if (restaurantTotal > 0 && cafeTotal > 0) {
+        expect(currentAmenities).to.be.equals("restaurant, cafe");
+      }
+      if (restaurantTotal > 0 && cafeTotal == 0) {
+        expect(currentAmenities).to.be.equals("restaurant");
+      }
+      if (restaurantTotal == 0 && cafeTotal > 0) {
+        expect(currentAmenities).to.be.equals("cafe");
+      }
+      if (restaurantTotal == 0 && cafeTotal == 0) {
+        expect(currentAmenities).to.be.equals("None");
+      }
     });
   });
 });
