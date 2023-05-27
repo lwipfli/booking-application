@@ -358,6 +358,7 @@ struct Booking {
     address booker;
     bool checkedIn;
     uint depot;
+    uint payment;
     uint startTime;
     uint endTime;
 }

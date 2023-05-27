@@ -47,7 +47,6 @@ describe("BookingContract", function () {
       initializer: "initialize",
       unsafeAllow: ["external-library-linking"],
     });
-    //await booking.deployed();
 
     return { booking, owner, otherAccount, bookingDateTimestamp, lib };
   }
@@ -288,7 +287,7 @@ describe("BookingContract", function () {
       ).to.be.revertedWithoutReason();
     });
 
-    it("Book room successfully, should increase balance of owner.", async function () {
+    it("Book room successfully.", async function () {
       const { booking, owner, otherAccount, bookingDateTimestamp } =
         await loadFixture(deployBasicFixture);
 
@@ -319,7 +318,7 @@ describe("BookingContract", function () {
 
       await expect(
         booking.connect(owner).bookRoom(0, bookingDateTimestamp, 2, {
-          value: ethers.utils.parseUnits("8.0", 15), // 8000000000000000 gwei
+          value: ethers.utils.parseUnits("8.0", 15),
         })
       )
         .to.emit(booking, "RoomBooked")
@@ -330,18 +329,8 @@ describe("BookingContract", function () {
           bookingDateTimestamp + 2 * 86400
         );
 
-      var preBalance = await provider.getBalance(otherAccount.address);
-      //console.log("Balance before withdrawing: " + preBalance.toString());
-      expect(await booking.connect(otherAccount).checkBalance()).to.equal(
-        8000000000000000
-      );
-      await booking.connect(otherAccount).withdraw();
-      var postBalance = await provider.getBalance(otherAccount.address);
       expect(await booking.connect(otherAccount).checkBalance()).to.equal(0);
-      //console.log("Balance after  withdrawing: " + postBalance.toString());
-
-      // OtherAccount should have gotten payment from the contract
-      expect(preBalance < postBalance);
+      expect(await booking.connect(owner).checkBalance()).to.equal(0);
 
       // Booking should be there
       var bookings = await booking.getBookings(0);
@@ -351,6 +340,114 @@ describe("BookingContract", function () {
       expect(bookings[0].endTime).to.equal(bookingDateTimestamp + 2 * 86400);
       expect(bookings[0].checkedIn).to.equal(false);
       expect(bookings[0].depot).to.equal(0);
+      expect(bookings[0].payment).to.equal(8000000000000000);
+    });
+
+    it("Refund room booking.", async function () {
+      const { booking, owner, otherAccount } = await loadFixture(
+        deployBasicFixture
+      );
+
+      const newBookingDateTimestamp = (await time.latest()) + 43200; //86400
+
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          ethers.utils.parseUnits("50", 18),
+          0,
+          4000000000000000,
+          "TestURI",
+          50,
+          false
+        );
+
+      await expect(
+        booking.connect(owner).bookRoom(0, newBookingDateTimestamp, 2, {
+          value: ethers.utils.parseUnits("8.0", 15),
+        })
+      )
+        .to.emit(booking, "RoomBooked")
+        .withArgs(
+          0,
+          owner.address,
+          newBookingDateTimestamp,
+          newBookingDateTimestamp + 2 * 86400
+        );
+      var room = await booking.getRoom(0);
+      expect(room.bookings.length).to.be.equal(1);
+
+      await expect(booking.connect(owner).cancelBooking(0, 0))
+        .to.emit(booking, "RefundBooking")
+        .withArgs(
+          0,
+          owner.address,
+          newBookingDateTimestamp,
+          newBookingDateTimestamp + 2 * 86400
+        );
+
+      expect(await booking.connect(owner).checkBalance()).to.equal(
+        8000000000000000
+      );
+
+      room = await booking.getRoom(0);
+      expect(room.bookings.length).to.be.equal(0);
+    });
+
+    it("Cancel room booking, cannot be refunded anymore.", async function () {
+      const { booking, owner, otherAccount } = await loadFixture(
+        deployBasicFixture
+      );
+
+      const newBookingDateTimestamp = (await time.latest()) + 43200; //86400
+
+      await booking
+        .connect(otherAccount)
+        .postRoom(
+          ethers.utils.parseUnits("50", 18),
+          0,
+          4000000000000000,
+          "TestURI",
+          50,
+          false
+        );
+
+      await expect(
+        booking.connect(owner).bookRoom(0, newBookingDateTimestamp, 2, {
+          value: ethers.utils.parseUnits("8.0", 15),
+        })
+      )
+        .to.emit(booking, "RoomBooked")
+        .withArgs(
+          0,
+          owner.address,
+          newBookingDateTimestamp,
+          newBookingDateTimestamp + 2 * 86400
+        );
+
+      await time.increaseTo(newBookingDateTimestamp + 100);
+
+      await expect(
+        booking.connect(owner).cancelBooking(0, 0)
+      ).to.revertedWithoutReason();
+
+      await expect(
+        booking.connect(otherAccount).removeBooking(0, 0)
+      ).to.revertedWithoutReason();
+
+      await time.increaseTo(newBookingDateTimestamp + 2 * 86400 + 100);
+
+      await expect(booking.connect(otherAccount).removeBooking(0, 0))
+        .to.emit(booking, "CancelBooking")
+        .withArgs(
+          0,
+          owner.address,
+          newBookingDateTimestamp,
+          newBookingDateTimestamp + 2 * 86400
+        );
+
+      expect(await booking.connect(otherAccount).checkBalance()).to.equal(
+        8000000000000000
+      );
     });
 
     it("Should revert if room is unbookable.", async function () {
@@ -513,6 +610,7 @@ describe("BookingContract", function () {
       var room = await booking.getRoom(0);
       // There should be no depot on the room.
       expect(room.bookings[0].depot).to.equal(0);
+      expect(room.bookings[0].payment).to.equal(60);
 
       await expect(
         booking.connect(owner).checkIn(0, {
@@ -525,6 +623,10 @@ describe("BookingContract", function () {
       room = await booking.getRoom(0);
       // There should be no depot on the room.
       expect(room.bookings[0].depot).to.equal(10);
+      expect(room.bookings[0].payment).to.equal(0);
+
+      // Owner has been paid.
+      expect(await booking.connect(otherAccount).checkBalance()).to.equal(60);
     });
 
     it("Should revert if already checked in.", async function () {

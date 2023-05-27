@@ -39,6 +39,20 @@ contract BookingContractV2 is BookingInterface, Initializable {
     event RoomCheckedIn(uint indexed roomIndex, address indexed booker);
     event RoomCheckedOut(uint indexed roomIndex, address indexed booker);
 
+    event RefundBooking(
+        uint indexed roomIndex,
+        address indexed booker,
+        uint startTime,
+        uint endTime
+    );
+
+    event CancelBooking(
+        uint indexed roomIndex,
+        address indexed booker,
+        uint startTime,
+        uint endTime
+    );
+
     // Modifiers
     modifier roomIndexCheck(uint roomIndex) {
         require((rooms.length > roomIndex) && (roomIndex >= 0));
@@ -240,16 +254,64 @@ contract BookingContractV2 is BookingInterface, Initializable {
 
         uint endTime = timestamp + (numberOfDays * 86400);
         require(!(overlapsCurrentBookings(roomIndex, timestamp, endTime)));
-        addBooking(roomIndex, msg.sender, timestamp, endTime);
+        addBooking(roomIndex, msg.sender, timestamp, endTime, msg.value);
         emit RoomBooked(roomIndex, msg.sender, timestamp, endTime);
         pendingWithdrawals[room.owner] += msg.value;
+    }
+
+    function cancelBooking(
+        uint roomIndex,
+        uint bookingIndex
+    ) public roomIndexCheck(roomIndex) {
+        Room storage room = rooms[roomIndex];
+        require(room.bookings[bookingIndex].startTime > block.timestamp);
+        require(room.bookings[bookingIndex].booker == msg.sender);
+        uint paidAmount = room.bookings[bookingIndex].payment;
+        room.bookings[bookingIndex].payment = 0;
+        pendingWithdrawals[msg.sender] += paidAmount;
+        emit RefundBooking(
+            roomIndex,
+            room.bookings[bookingIndex].booker,
+            room.bookings[bookingIndex].startTime,
+            room.bookings[bookingIndex].endTime
+        );
+        // Remove booking
+        for (uint i = bookingIndex; i < room.bookings.length - 1; i++) {
+            room.bookings[i] = room.bookings[i + 1];
+        }
+        room.bookings.pop();
+    }
+
+    function removeBooking(
+        uint roomIndex,
+        uint bookingIndex
+    ) public roomIndexCheck(roomIndex) {
+        Room storage room = rooms[roomIndex];
+        require(room.bookings[bookingIndex].endTime < block.timestamp);
+        require(!(room.bookings[bookingIndex].checkedIn));
+        require(room.owner == msg.sender);
+        uint paidAmount = room.bookings[bookingIndex].payment;
+        room.bookings[bookingIndex].payment = 0;
+        pendingWithdrawals[msg.sender] += paidAmount;
+        emit CancelBooking(
+            roomIndex,
+            room.bookings[bookingIndex].booker,
+            room.bookings[bookingIndex].startTime,
+            room.bookings[bookingIndex].endTime
+        );
+        // Remove booking
+        for (uint i = bookingIndex; i < room.bookings.length - 1; i++) {
+            room.bookings[i] = room.bookings[i + 1];
+        }
+        room.bookings.pop();
     }
 
     function addBooking(
         uint roomIndex,
         address booker,
         uint startTime,
-        uint endTime
+        uint endTime,
+        uint paidAmount
     ) internal {
         Room storage room = rooms[roomIndex];
         uint bookingIdx = room.bookings.length;
@@ -260,6 +322,7 @@ contract BookingContractV2 is BookingInterface, Initializable {
         booking.endTime = endTime;
         booking.checkedIn = false;
         booking.depot = 0;
+        booking.payment = paidAmount;
     }
 
     function getBookings(
@@ -405,6 +468,9 @@ contract BookingContractV2 is BookingInterface, Initializable {
                 (block.timestamp <= room.bookings[bookingIndex].endTime)
         );
         room.bookings[bookingIndex].depot += msg.value;
+        uint paidAmount = room.bookings[bookingIndex].payment;
+        room.bookings[bookingIndex].payment = 0;
+        pendingWithdrawals[room.owner] += paidAmount;
         room.bookings[bookingIndex].checkedIn = true;
         emit RoomCheckedIn(roomIndex, msg.sender);
     }

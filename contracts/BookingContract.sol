@@ -79,6 +79,30 @@ contract BookingContract is BookingInterface, Initializable {
     /// @param booker Address of the booker.
     event RoomCheckedOut(uint indexed roomIndex, address indexed booker);
 
+    /// @notice Indicates that a room booking has been refunded by the booker.
+    /// @param roomIndex Index of the room.
+    /// @param booker Address of the booker.
+    /// @param startTime Start time of booking in unix time.
+    /// @param endTime End time of booking in unix time.
+    event RefundBooking(
+        uint indexed roomIndex,
+        address indexed booker,
+        uint startTime,
+        uint endTime
+    );
+
+    /// @notice Indicates that an unused room booking has been removed by the room owner.
+    /// @param roomIndex Index of the room.
+    /// @param booker Address of the booker.
+    /// @param startTime Start time of booking in unix time.
+    /// @param endTime End time of booking in unix time.
+    event CancelBooking(
+        uint indexed roomIndex,
+        address indexed booker,
+        uint startTime,
+        uint endTime
+    );
+
     /// MODIFIERS ///
 
     /// @dev Checks that requested room by index does exist by checking if the index is possible.
@@ -324,16 +348,80 @@ contract BookingContract is BookingInterface, Initializable {
 
         uint endTime = timestamp + (numberOfDays * 86400);
         require(!(overlapsCurrentBookings(roomIndex, timestamp, endTime)));
-        addBooking(roomIndex, msg.sender, timestamp, endTime);
+        addBooking(roomIndex, msg.sender, timestamp, endTime, msg.value);
         emit RoomBooked(roomIndex, msg.sender, timestamp, endTime);
-        pendingWithdrawals[room.owner] += msg.value;
+    }
+
+    /// @notice Refund room booking if possible, and removes the booking.
+    /// @dev
+    /// - Room must exist.
+    /// - Booking must not have started.
+    /// - Booking can only be refunded by booker.
+    /// - Emits RefundBooking.
+    /// @param roomIndex Index of room.
+    /// @param bookingIndex Index of booking.
+    function cancelBooking(
+        uint roomIndex,
+        uint bookingIndex
+    ) public roomIndexCheck(roomIndex) {
+        Room storage room = rooms[roomIndex];
+        require((room.bookings[bookingIndex].startTime) > block.timestamp);
+        require(room.bookings[bookingIndex].booker == msg.sender);
+        uint paidAmount = room.bookings[bookingIndex].payment;
+        room.bookings[bookingIndex].payment = 0;
+        pendingWithdrawals[msg.sender] += paidAmount;
+        emit RefundBooking(
+            roomIndex,
+            room.bookings[bookingIndex].booker,
+            room.bookings[bookingIndex].startTime,
+            room.bookings[bookingIndex].endTime
+        );
+        // Remove booking
+        for (uint i = bookingIndex; i < room.bookings.length - 1; i++) {
+            room.bookings[i] = room.bookings[i + 1];
+        }
+        room.bookings.pop();
+    }
+
+    /// @notice Remove unused booking and collect payment.
+    /// @dev
+    /// - Room must exist.
+    /// - Booking must have ended.
+    /// - Booking should not be checked in.
+    /// - Can only be invoked by room owner.
+    /// - Emits CancelBooking.
+    /// @param roomIndex Index of room.
+    /// @param bookingIndex Index of booking.
+    function removeBooking(
+        uint roomIndex,
+        uint bookingIndex
+    ) public roomIndexCheck(roomIndex) {
+        Room storage room = rooms[roomIndex];
+        require(room.bookings[bookingIndex].endTime < block.timestamp);
+        require(!(room.bookings[bookingIndex].checkedIn));
+        require(room.owner == msg.sender);
+        uint paidAmount = room.bookings[bookingIndex].payment;
+        room.bookings[bookingIndex].payment = 0;
+        pendingWithdrawals[msg.sender] += paidAmount;
+        emit CancelBooking(
+            roomIndex,
+            room.bookings[bookingIndex].booker,
+            room.bookings[bookingIndex].startTime,
+            room.bookings[bookingIndex].endTime
+        );
+        // Remove booking
+        for (uint i = bookingIndex; i < room.bookings.length - 1; i++) {
+            room.bookings[i] = room.bookings[i + 1];
+        }
+        room.bookings.pop();
     }
 
     function addBooking(
         uint roomIndex,
         address booker,
         uint startTime,
-        uint endTime
+        uint endTime,
+        uint paidAmount
     ) internal {
         Room storage room = rooms[roomIndex];
         uint bookingIdx = room.bookings.length;
@@ -344,6 +432,7 @@ contract BookingContract is BookingInterface, Initializable {
         booking.endTime = endTime;
         booking.checkedIn = false;
         booking.depot = 0;
+        booking.payment = paidAmount;
     }
 
     /// @notice Returns all current bookings of a room.
@@ -534,6 +623,9 @@ contract BookingContract is BookingInterface, Initializable {
                 (block.timestamp <= room.bookings[bookingIndex].endTime)
         );
         room.bookings[bookingIndex].depot += msg.value;
+        uint paidAmount = room.bookings[bookingIndex].payment;
+        room.bookings[bookingIndex].payment = 0;
+        pendingWithdrawals[room.owner] += paidAmount;
         room.bookings[bookingIndex].checkedIn = true;
         emit RoomCheckedIn(roomIndex, msg.sender);
     }
