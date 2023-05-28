@@ -1,17 +1,20 @@
 pragma solidity ^0.8.9;
 
 interface OracleHelper {
-    event CallAPIWithOracle(
+    event OracleRequest(
+        bytes32 indexed requestId,
         address indexed invoker,
-        string request,
-        address indexed oracle,
-        uint invocationTime
+        string latitude,
+        string longitude,
+        string distance,
+        address indexed oracle
     );
 
     event OracleResponse(
+        bytes32 indexed requestId,
         address indexed oracle,
-        uint[] response,
-        uint responseTime
+        uint indexed roomIndex,
+        uint256[] response
     );
 
     function getVersionNumber() external view returns (uint);

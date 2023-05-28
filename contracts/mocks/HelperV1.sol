@@ -13,12 +13,6 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
     address private parent;
     bytes32 private jobId;
     uint256 private fee;
-    
-    event RequestFulfilled(
-        uint indexed roomIndex,
-        bytes32 indexed requestId,
-        uint256[] resultArray
-    );
 
     uint versionNumber;
     uint requestCounter;
@@ -155,6 +149,15 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
         sendChainlinkRequest(req, fee);
         roomIndexPerReqId[getRequestId(requestCounter)] = roomIndex;
         requestCounter++;
+
+        emit OracleRequest(
+            getRequestId(requestCounter),
+            origin,
+            latitude,
+            longitude,
+            distance,
+            chainlinkOracleAddress()
+        );
     }
 
     function fulfillMultipleParameters(
@@ -171,9 +174,10 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
             result
         );
 
-        emit RequestFulfilled(
-            roomIndexPerReqId[_requestId],
+        emit OracleResponse(
             _requestId,
+            msg.sender,
+            roomIndexPerReqId[_requestId],
             result
         );
     }

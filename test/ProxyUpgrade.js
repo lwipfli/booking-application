@@ -4,7 +4,7 @@ const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 const { BigNumber, utils } = require("ethers");
 
-describe("OracleMock", function () {
+describe("ProxyUpgrade", function () {
   async function deployBasicFixture() {
     const [owner, otherAccount, thirdAccount] = await ethers.getSigners();
 
@@ -111,8 +111,8 @@ describe("OracleMock", function () {
         .withArgs(reqId1);
 
       await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 1, 0))
-        .to.emit(oracleMock, "OracleRequestFulfilled")
-        .withArgs(helperMockV1.address, selector, reqId1, 1, 0);
+        .to.emit(helperMockV1, "OracleResponse")
+        .withArgs(reqId1, oracleMock.address, 0, [1, 0]);
 
       var currentAmenities = await booking.getAmenitiesOfRoom(0);
       expect(currentAmenities).to.be.equals("restaurant");
@@ -146,13 +146,28 @@ describe("OracleMock", function () {
         await booking2.getImplementationAddress()
       );
 
-      await expect(booking2.connect(otherAccount).updateAmenities(1))
+      const requestTransaction = await booking2
+        .connect(otherAccount)
+        .updateAmenities(1);
+
+      expect(requestTransaction)
         .to.emit(helperMockV1, "ChainlinkRequested")
         .withArgs(reqId2);
 
+      expect(requestTransaction)
+        .to.emit(helperMockV1, "OracleRequest")
+        .withArgs(
+          reqId2,
+          otherAccount.address,
+          "50.000000000000000000",
+          "0",
+          "500.000000000000000000",
+          oracleMock.address
+        );
+
       await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId2, 1, 1))
-        .to.emit(helperMockV1, "RequestFulfilled")
-        .withArgs(1, reqId2, [1, 1]);
+        .to.emit(helperMockV1, "OracleResponse")
+        .withArgs(reqId2, oracleMock.address, 1, [1, 1]);
 
       expect(await booking2.getAmenitiesOfRoom(1)).to.be.equals(
         "restaurant, cafe"

@@ -267,13 +267,20 @@ describe("OracleMock", function () {
         .connect(otherAccount)
         .updateAmenities(0);
 
-      const receipt = await requestTransaction.wait();
-
       expect(requestTransaction)
         .to.emit(helperMockV1, "ChainlinkRequested")
         .withArgs(reqId1);
 
-      expect(requestTransaction).to.emit(helperMockV1, "OracleRequest");
+      expect(requestTransaction)
+        .to.emit(helperMockV1, "OracleRequest")
+        .withArgs(
+          reqId1,
+          otherAccount.address,
+          "50.000000000000000000",
+          "0",
+          "500.000000000000000000",
+          oracleMock.address
+        );
 
       var storedRequest = await oracleMock.getRequest(reqId1);
       expect(helperMockV1.address).to.be.equal(storedRequest.callbackAddr);
@@ -283,15 +290,9 @@ describe("OracleMock", function () {
         .connect(owner)
         .fulfillHelperRequest(reqId1, 0, 1);
 
-      const receipt2 = await requestTransaction2.wait();
-
-      for (const event of receipt2.events) {
-        console.log(`Event ${event.event} with args ${event.args}`);
-      }
-
       expect(requestTransaction2)
-        .to.emit("OracleRequestFulfilled")
-        .withArgs(helperMockV1.address, selector, reqId1, 0, 1);
+        .to.emit("OracleResponse")
+        .withArgs(reqId1, helperMockV1.address, 0, [0, 1]);
 
       var currentAmenities = await booking.getAmenitiesOfRoom(0);
       expect(currentAmenities).to.not.be.equals("None");
@@ -310,15 +311,29 @@ describe("OracleMock", function () {
       } = await loadFixture(prepareUpdateFixture);
 
       var reqId1 = await helperMockV1.getRequestId(1);
-      var selector = await helperMockV1.getFulfillSelector();
 
-      await expect(booking.connect(otherAccount).updateAmenities(0))
+      const requestTransaction = await booking
+        .connect(otherAccount)
+        .updateAmenities(0);
+
+      expect(requestTransaction)
         .to.emit(helperMockV1, "ChainlinkRequested")
         .withArgs(reqId1);
 
-      await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 1, 0))
-        .to.emit(oracleMock, "OracleRequestFulfilled")
-        .withArgs(helperMockV1.address, selector, reqId1, 1, 0);
+      expect(requestTransaction)
+        .to.emit(helperMockV1, "OracleRequest")
+        .withArgs(
+          reqId1,
+          otherAccount.address,
+          "50.000000000000000000",
+          "0",
+          "500.000000000000000000",
+          oracleMock.address
+        );
+
+      expect(await oracleMock.connect(owner).fulfillHelperRequest(reqId1, 1, 0))
+        .to.emit("OracleResponse")
+        .withArgs(reqId1, helperMockV1.address, 0, [1, 0]);
 
       var currentAmenities = await booking.getAmenitiesOfRoom(0);
       expect(currentAmenities).to.be.equals("restaurant");
@@ -336,15 +351,29 @@ describe("OracleMock", function () {
       } = await loadFixture(prepareUpdateFixture);
 
       var reqId1 = await helperMockV1.getRequestId(1);
-      var selector = await helperMockV1.getFulfillSelector();
 
-      await expect(booking.connect(otherAccount).updateAmenities(0))
+      const requestTransaction = await booking
+        .connect(otherAccount)
+        .updateAmenities(0);
+
+      expect(requestTransaction)
         .to.emit(helperMockV1, "ChainlinkRequested")
         .withArgs(reqId1);
 
-      await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 1, 1))
-        .to.emit(oracleMock, "OracleRequestFulfilled")
-        .withArgs(helperMockV1.address, selector, reqId1, 1, 1);
+      expect(requestTransaction)
+        .to.emit(helperMockV1, "OracleRequest")
+        .withArgs(
+          reqId1,
+          otherAccount.address,
+          "50.000000000000000000",
+          "0",
+          "500.000000000000000000",
+          oracleMock.address
+        );
+
+      expect(await oracleMock.connect(owner).fulfillHelperRequest(reqId1, 1, 1))
+        .to.emit("OracleResponse")
+        .withArgs(reqId1, helperMockV1.address, 0, [1, 1]);
 
       var currentAmenities = await booking.getAmenitiesOfRoom(0);
       expect(currentAmenities).to.be.equals("restaurant, cafe");
@@ -362,15 +391,29 @@ describe("OracleMock", function () {
       } = await loadFixture(prepareUpdateFixture);
 
       var reqId1 = await helperMockV1.getRequestId(1);
-      var selector = await helperMockV1.getFulfillSelector();
 
-      await expect(booking.connect(otherAccount).updateAmenities(0))
+      const requestTransaction = await booking
+        .connect(otherAccount)
+        .updateAmenities(0);
+
+      expect(requestTransaction)
         .to.emit(helperMockV1, "ChainlinkRequested")
         .withArgs(reqId1);
 
+      expect(requestTransaction)
+        .to.emit(helperMockV1, "OracleRequest")
+        .withArgs(
+          reqId1,
+          otherAccount.address,
+          "50.000000000000000000",
+          "0",
+          "500.000000000000000000",
+          oracleMock.address
+        );
+
       await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 3, 4))
-        .to.emit(oracleMock, "OracleRequestFulfilled")
-        .withArgs(helperMockV1.address, selector, reqId1, 3, 4);
+        .to.emit(helperMockV1, "OracleResponse")
+        .withArgs(reqId1, oracleMock.address, 0, [3, 4]);
 
       var currentAmenities = await booking.getAmenitiesOfRoom(0);
       expect(currentAmenities).to.be.equals("restaurant, cafe");
@@ -396,7 +439,7 @@ describe("OracleMock", function () {
         .revertedWithoutReason;
     });
 
-    it("Helper contract should is successfully changed to second version, and still work with new room.", async function () {
+    it("Helper contract should successfully changed to second version, and still work with new room.", async function () {
       const {
         owner,
         otherAccount,
@@ -431,6 +474,7 @@ describe("OracleMock", function () {
       await tokenMock
         .connect(otherAccount)
         .approve(helperMockV2.address, ethers.utils.parseUnits("2", 17));
+
       await helperMockV2
         .connect(otherAccount)
         .chargeLinkBalance(ethers.utils.parseUnits("2", 17));
@@ -438,18 +482,32 @@ describe("OracleMock", function () {
       expect(await booking.getAmenitiesOfRoom(1)).to.be.equals("None");
 
       var reqId1 = await helperMockV2.getRequestId(1);
-      var selector = await helperMockV2.getFulfillSelector();
 
-      await expect(booking.connect(otherAccount).updateAmenities(1))
+      const requestTransaction = await booking
+        .connect(otherAccount)
+        .updateAmenities(1);
+
+      expect(requestTransaction)
         .to.emit(helperMockV2, "ChainlinkRequested")
         .withArgs(reqId1);
+
+      expect(requestTransaction)
+        .to.emit(helperMockV2, "OracleRequest")
+        .withArgs(
+          reqId1,
+          otherAccount.address,
+          "52.000000000000000000",
+          "30.000000000000000000",
+          "500.000000000000000000",
+          oracleMock.address
+        );
 
       var roomOfRequest = await helperMockV2.getRoomIndexOfRequest(reqId1);
       expect(roomOfRequest).to.be.equal(1);
 
       await expect(oracleMock.connect(owner).fulfillHelperRequest(reqId1, 1, 0))
-        .to.emit(helperMockV2, "RequestFulfilled")
-        .withArgs(1, reqId1, [1, 0]);
+        .to.emit(helperMockV2, "OracleResponse")
+        .withArgs(reqId1, oracleMock.address, 1, [1, 0]);
 
       var currentAmenities = await booking.getAmenitiesOfRoom(1);
       expect(currentAmenities).to.be.equals("restaurant");
@@ -515,11 +573,25 @@ describe("OracleMock", function () {
         .chargeLinkBalance(ethers.utils.parseUnits("1", 17));
 
       var reqId1 = await helperMockLive.getRequestId(1);
-      var selector = await helperMockLive.getFulfillSelector();
 
-      await expect(booking.connect(otherAccount).updateAmenities(0))
+      const requestTransaction = await booking
+        .connect(otherAccount)
+        .updateAmenities(0);
+
+      expect(requestTransaction)
         .to.emit(helperMockLive, "ChainlinkRequested")
         .withArgs(reqId1);
+
+      expect(requestTransaction)
+        .to.emit(helperMockLive, "OracleRequest")
+        .withArgs(
+          reqId1,
+          otherAccount.address,
+          "50.000000000000000000",
+          "0",
+          "500.000000000000000000",
+          oracleMock.address
+        );
 
       // Get API response
       var restaurantTotalHttp = await helperMockLive.getRestaurantUrl();
@@ -533,19 +605,16 @@ describe("OracleMock", function () {
       let cafeData = await cafeResponse.json();
       var cafeTotal = cafeData.elements[0].tags.total;
 
-      await expect(
-        oracleMock
+      expect(
+        await oracleMock
           .connect(owner)
           .fulfillHelperRequest(reqId1, restaurantTotal, cafeTotal)
       )
-        .to.emit(oracleMock, "OracleRequestFulfilled")
-        .withArgs(
-          helperMockLive.address,
-          selector,
-          reqId1,
+        .to.emit("OracleResponse")
+        .withArgs(reqId1, helperMockLive.address, 0, [
           restaurantTotal,
-          cafeTotal
-        );
+          cafeTotal,
+        ]);
 
       var currentAmenities = await booking.getAmenitiesOfRoom(0);
       if (restaurantTotal > 0 && cafeTotal > 0) {
