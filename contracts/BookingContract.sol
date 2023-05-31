@@ -124,7 +124,7 @@ contract BookingContract is BookingInterface, Initializable {
 
     Room[] public rooms;
 
-    mapping(address => uint[]) public roomsCreatedByOwners;
+    mapping(address => uint[]) private roomsCreatedByOwners;
     mapping(address => uint) private pendingWithdrawals;
 
     /// @dev Initializer function for OpenZeppeling upgrades
