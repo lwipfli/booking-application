@@ -187,7 +187,7 @@ contract BookingContractV2 is BookingInterface, Initializable {
     ) external {
         Room storage room = rooms[roomIndex];
         require(msg.sender == helper);
-        require(amenities.length <= BookingLib.getAmenitySize());
+        require(amenities.length <= uint(type(BookingLib.Amenity).max) + 1);
         //delete room.amenities;
         room.amenities = BookingLib.getAmenities(amenities);
         // Add new Amenities

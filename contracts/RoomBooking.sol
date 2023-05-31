@@ -12,10 +12,6 @@ library BookingLib {
         CAFE
     }
 
-    function getAmenitySize() public pure returns (uint) {
-        return 2;
-    }
-
     function atan2Approx(int256 x, int256 y) public pure returns (int256) {
         // From https://github.com/NovakDistributed/macroverse/blob/master/contracts/RealMath.sol
         int256 result;
