@@ -21,6 +21,8 @@
   },
   "dependencies": {
     "@chainlink/contracts": "^0.6.1",
+    "@graphprotocol/graph-cli": "^0.51.0",
+    "@graphprotocol/graph-ts": "^0.31.0",
     "@openzeppelin/contracts": "^4.8.3",
     "@prb/math": "^4.0.0",
     "node-fetch": "^2.6.11",

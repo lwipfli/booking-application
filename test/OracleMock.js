@@ -24,6 +24,7 @@ describe("OracleMock", function () {
     const oracleMock = await mockOracleContract
       .connect(owner)
       .deploy(tokenMock.address);
+    await oracleMock.deployed();
 
     return { owner, otherAccount, thirdAccount, tokenMock, oracleMock };
   }
@@ -47,6 +48,7 @@ describe("OracleMock", function () {
       initializer: "initialize",
       unsafeAllow: ["external-library-linking"],
     });
+    await booking.deployed();
 
     const currentImplAddress = await booking.getImplementationAddress();
 
@@ -54,6 +56,7 @@ describe("OracleMock", function () {
     const helperMockV1 = await helperMockContract
       .connect(owner)
       .deploy(currentImplAddress, tokenMock.address, oracleMock.address);
+    await helperMockV1.deployed();
 
     await booking.connect(owner).setHelper(helperMockV1.address);
 
@@ -98,6 +101,7 @@ describe("OracleMock", function () {
     await tokenMock
       .connect(otherAccount)
       .approve(helperMockV1.address, ethers.utils.parseUnits("1", 17));
+
     await helperMockV1
       .connect(otherAccount)
       .chargeLinkBalance(ethers.utils.parseUnits("1", 17));
