@@ -1,42 +1,69 @@
 const hre = require("hardhat");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 
-async function indexEvents(index, transactionResponse){
-const transactionReceipt = await transactionResponse.wait();
+var enable_logging = true;
+var transaction_queue = [];
 
-for (let i = 0; i < transactionReceipt.events.length; i++) {
-  switch (transactionReceipt.events[i].event){
-    case 'RoomPosted':
-      await handleRoomPosted(index,transactionReceipt.events[i], transactionReceipt);
-    break;
-    case 'RoomUpdated':
-      await handleRoomUpdated(index,transactionReceipt.events[i], transactionReceipt);
-    break;
-    case 'RoomAmenities':
-      await handleAmenityUpdate(index,transactionReceipt.events[i], transactionReceipt);
-    break;
-    default:
-    console.log("Could not handle the following event.")
-    break;
+function log(...args) {
+  if (enable_logging) {
+    console.log(...args);
   }
 }
-};
 
+async function indexEvents(index) {
+  for (let h = 0; h < transaction_queue.length; h++) {
+    const transactionReceipt = await transaction_queue[h].wait();
 
-async function handleRoomPosted(index, event, receipt){
+    for (let i = 0; i < transactionReceipt.events.length; i++) {
+      switch (transactionReceipt.events[i].event) {
+        case "RoomPosted":
+          await handleRoomPosted(
+            index,
+            transactionReceipt.events[i],
+            transactionReceipt
+          );
+          break;
+        case "RoomUpdated":
+          await handleRoomUpdated(
+            index,
+            transactionReceipt.events[i],
+            transactionReceipt
+          );
+          break;
+        case "RoomAmenities":
+          await handleAmenityUpdate(
+            index,
+            transactionReceipt.events[i],
+            transactionReceipt
+          );
+          break;
+        default:
+          log(
+            "Event ",
+            transactionReceipt.events[i].event,
+            " was not handled."
+          );
+          break;
+      }
+    }
+  }
+}
+
+async function handleRoomPosted(index, event, receipt) {
   let room = new Object();
   room.index = event.args[0];
-  
+
   // Check if owner exists
-  if(!(index.owners.find(element => element.address == event.args[1]))){
+  if (!index.owners.find((element) => element.address == event.args[1])) {
     let owner = new Object();
     owner.address = event.args[1];
     owner.owned = [];
     owner.owned.push(event.args[0]);
     index.owners.push(owner);
-  }
-  else{
-    let owner = index.owners.find(element => element.address == event.args[1]);
+  } else {
+    let owner = index.owners.find(
+      (element) => element.address == event.args[1]
+    );
     owner.owned.push(event.args[0]);
   }
 
@@ -46,42 +73,51 @@ async function handleRoomPosted(index, event, receipt){
   room.longitude = event.args[4];
   room.uri = event.args[5];
   room.searchDistance = event.args[6];
-  
 
-  room.created = (await hre.ethers.provider.getBlock(receipt.blockNumber)).timestamp;
+  room.created = (
+    await hre.ethers.provider.getBlock(receipt.blockNumber)
+  ).timestamp;
   room.bookings = [];
-  room.amenities = '';
+  room.amenities = "";
   room.bookable = true;
 
-  room.amenityHistory = [{time : room.created, amenities : ''}];
-  room.updateHistory = [{time : room.created, price: event.args[2], uri: event.args[5], searchDistance: event.args[6] }];
-  room.bookableHistory = [{time : room.created, bookable : true}];
+  room.amenityHistory = [{ time: room.created, amenities: "" }];
+  room.updateHistory = [
+    {
+      time: room.created,
+      price: event.args[2],
+      uri: event.args[5],
+      searchDistance: event.args[6],
+    },
+  ];
+  room.bookableHistory = [{ time: room.created, bookable: true }];
 
   index.rooms.push(room);
 }
 
-async function handleRoomUpdated(index, event, receipt){
+async function handleRoomUpdated(index, event, receipt) {
   let room = index.rooms[event.args[0]];
   room.price = event.args[1];
   room.searchDistance = event.args[2];
   room.uri = event.args[3];
-  room.updateHistory.push({time : (await hre.ethers.provider.getBlock(receipt.blockNumber)).timestamp, price: event.args[1], uri: event.args[3], searchDistance: event.args[2] });
-};
-
-async function handleAmenityUpdate(index, event, receipt){
-  let room = index.rooms[event.args[0]];
-  room.amenities = event.args[1];
-  room.amenityHistory.push({time : (await hre.ethers.provider.getBlock(receipt.blockNumber)).timestamp, amenities : event.args[1]});
-
+  room.updateHistory.push({
+    time: (await hre.ethers.provider.getBlock(receipt.blockNumber)).timestamp,
+    price: event.args[1],
+    uri: event.args[3],
+    searchDistance: event.args[2],
+  });
 }
 
+async function handleAmenityUpdate(index, event, receipt) {
+  let room = index.rooms[event.args[0]];
+  room.amenities = event.args[1];
+  room.amenityHistory.push({
+    time: (await hre.ethers.provider.getBlock(receipt.blockNumber)).timestamp,
+    amenities: event.args[1],
+  });
+}
 
-
-
-
-
-
-async function main() {
+async function deployContracts() {
   const [owner, otherAccount] = await hre.ethers.getSigners();
 
   const tokenMockContract = await hre.ethers.getContractFactory(
@@ -115,41 +151,38 @@ async function main() {
     unsafeAllow: ["external-library-linking"],
   });
 
-  console.log("Deployed the contracts and library.");
+  return { owner, otherAccount, tokenMock, oracleMock, lib, booking };
+}
 
-  let index = new Object();
+async function indexEventsIntoObject() {
+  var index = new Object();
   index.rooms = [];
   index.owners = [];
+  await indexEvents(index);
+  return index;
+}
 
+async function main() {
+  const { owner, otherAccount, tokenMock, oracleMock, lib, booking } =
+    await deployContracts();
 
+  log("Deployed the contracts and library.");
 
-  let posting = await booking
-  .connect(otherAccount)
-  .postRoom(
-    ethers.utils.parseUnits("50", 18),
-    0,
-    20,
-    "TestURI",
-    500,
-    false
-  );
-  console.log("#########################");
-  await indexEvents(index, posting);
-  console.log("#########################");
-  console.log(index.rooms[0]);
+  const posting = await booking
+    .connect(otherAccount)
+    .postRoom(ethers.utils.parseUnits("50", 18), 0, 20, "TestURI", 500, false);
+  transaction_queue.push(posting);
 
-  // Increase time by 5 seconds
-  await time.increaseTo( await time.latest() + 5000);
+  // Increase time by 1 seconds
+  await time.increaseTo((await time.latest()) + 1000);
 
+  const updateRoom = await booking
+    .connect(otherAccount)
+    .updateRoom(0, 30, "URI2", 333);
+  transaction_queue.push(updateRoom);
 
-  let updateRoom = await booking
-  .connect(otherAccount)
-  .updateRoom(0,30,"URI2",333);
-  console.log("#########################");
-  await indexEvents(index, updateRoom);
-  console.log("#########################");
-  console.log(index.rooms[0]);
-
+  const index = await indexEventsIntoObject();
+  log(index);
 }
 
 main().catch((error) => {
