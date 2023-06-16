@@ -1,8 +1,18 @@
 const hre = require("hardhat");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
+//const { expect } = require("chai");
+const assert = require("assert");
 
 var enable_logging = true;
 var transaction_queue = [];
+
+const BookingStatus = {
+  Open: Symbol("open"),
+  Refunded: Symbol("refunded"),
+  CheckedIn: Symbol("checkedin"),
+  CheckedOut: Symbol("checkedout"),
+  Evicted: Symbol("evicted"),
+};
 
 function log(...args) {
   if (enable_logging) {
@@ -37,6 +47,71 @@ async function indexEvents(index) {
             transactionReceipt
           );
           break;
+
+        case "RoomBookableUpdate":
+          await handleRoomBookableUpdate(
+            index,
+            transactionReceipt.events[i],
+            transactionReceipt
+          );
+          break;
+
+        case "RoomBooked":
+          await handleRoomBooked(
+            index,
+            transactionReceipt.events[i],
+            transactionReceipt
+          );
+          break;
+
+        case "RoomCheckedIn":
+          await handleRoomCheckedIn(
+            index,
+            transactionReceipt.events[i],
+            transactionReceipt
+          );
+          break;
+
+        case "RoomCheckedOut":
+          await handleRoomCheckedOut(
+            index,
+            transactionReceipt.events[i],
+            transactionReceipt
+          );
+          break;
+
+        case "RefundBooking":
+          await handleRefundBooking(
+            index,
+            transactionReceipt.events[i],
+            transactionReceipt
+          );
+          break;
+
+        case "CancelBooking":
+          await handleCancelBooking(
+            index,
+            transactionReceipt.events[i],
+            transactionReceipt
+          );
+          break;
+
+        case "OracleRequest":
+          await handleOracleRequest(
+            index,
+            transactionReceipt.events[i],
+            transactionReceipt
+          );
+          break;
+
+        case "OracleResponse":
+          await handleOracleOracleResponse(
+            index,
+            transactionReceipt.events[i],
+            transactionReceipt
+          );
+          break;
+
         default:
           log(
             "Event ",
@@ -47,6 +122,99 @@ async function indexEvents(index) {
       }
     }
   }
+}
+
+async function handleOracleRequest(index, event, receipt) {
+  let time = (await hre.ethers.provider.getBlock(receipt.blockNumber))
+    .timestamp;
+  let requestResponse = index.requestResponse.find(
+    (e) => e.id == event.args[0] && e.oracleAddress == event.args[1]
+  );
+  requestResponse.roomIndex = event.args[2];
+  requestResponse.response = event.args[3];
+  requestResponse.responseTime = time;
+}
+
+async function handleOracleRequest(index, event, receipt) {
+  let time = (await hre.ethers.provider.getBlock(receipt.blockNumber))
+    .timestamp;
+  index.requestResponse.push({
+    id: event.args[0],
+    invoker: event.args[1],
+    latitudeString: event.args[2],
+    longitudeString: event.args[3],
+    distanceString: event.args[4],
+    oracleAddress: event.args[5],
+    requestTime: time,
+  });
+}
+
+async function handleCancelBooking(index, event, receipt) {
+  let room = index.rooms[event.args[0]];
+  let targetBooking = room.booking.find(
+    (booking) =>
+      booking.startTime == event.args[2] &&
+      booking.endTime == event.args[3] &&
+      booking.booker == event.args[1] &&
+      booking.status == BookingStatus.CheckedIn
+  );
+  targetBooking.status = BookingStatus.CancelBooking;
+}
+
+async function handleRefundBooking(index, event, receipt) {
+  let room = index.rooms[event.args[0]];
+  let targetBooking = room.booking.find(
+    (booking) =>
+      booking.startTime == event.args[2] &&
+      booking.endTime == event.args[3] &&
+      booking.booker == event.args[1] &&
+      booking.status == BookingStatus.Open
+  );
+  targetBooking.status = BookingStatus.Refunded;
+}
+
+async function handleRoomCheckedOut(index, event, receipt) {
+  let room = index.rooms[event.args[0]];
+  let targetBooking = room.booking.find(
+    (booking) =>
+      booking.booker == event.args[1] &&
+      booking.status == BookingStatus.CheckedIn
+  );
+  targetBooking.status = BookingStatus.CheckedOut;
+  room.occupant = null;
+}
+
+async function handleRoomCheckedIn(index, event, receipt) {
+  let room = index.rooms[event.args[0]];
+  let time = (await hre.ethers.provider.getBlock(receipt.blockNumber))
+    .timestamp;
+  let targetBooking = room.booking.find(
+    (booking) =>
+      booking.startTime <= time <= booking.endTime &&
+      booking.booker == event.args[1] &&
+      booking.status == BookingStatus.Open
+  );
+  targetBooking.status = BookingStatus.CheckedIn;
+  room.occupant = event.args[1];
+}
+
+async function handleRoomBooked(index, event, receipt) {
+  let room = index.rooms[event.args[0]];
+  room.bookings.push({
+    booker: event.args[1],
+    startTime: event.args[2],
+    endTime: event.args[3],
+    status: BookingStatus.Open,
+  });
+}
+
+async function handleRoomBookableUpdate(index, event, receipt) {
+  let room = index.rooms[event.args[0]];
+  room.bookable = event.args[1];
+  room.bookableHistory.push({
+    time: (await hre.ethers.provider.getBlock(receipt.blockNumber)).timestamp,
+    bookable: event.args[1],
+  });
 }
 
 async function handleRoomPosted(index, event, receipt) {
@@ -80,6 +248,7 @@ async function handleRoomPosted(index, event, receipt) {
   room.bookings = [];
   room.amenities = "";
   room.bookable = true;
+  room.occupant = null;
 
   room.amenityHistory = [{ time: room.created, amenities: "" }];
   room.updateHistory = [
@@ -158,6 +327,7 @@ async function indexEventsIntoObject() {
   var index = new Object();
   index.rooms = [];
   index.owners = [];
+  index.requestResponse = [];
   await indexEvents(index);
   return index;
 }
