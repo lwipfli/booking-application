@@ -148,7 +148,6 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
         linkBalance[origin] -= fee;
         sendChainlinkRequest(req, fee);
         roomIndexPerReqId[getRequestId(requestCounter)] = roomIndex;
-        requestCounter++;
 
         emit OracleRequest(
             getRequestId(requestCounter),
@@ -158,6 +157,8 @@ contract HelperV1 is OracleHelper, ChainlinkClient, ConfirmedOwner {
             distance,
             chainlinkOracleAddress()
         );
+
+        requestCounter++;
     }
 
     function fulfillMultipleParameters(

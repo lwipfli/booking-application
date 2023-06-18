@@ -1,10 +1,10 @@
 const hre = require("hardhat");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
-//const { expect } = require("chai");
 const assert = require("assert");
 
-var enable_logging = true;
+var enable_logging = false;
 var transaction_queue = [];
+var event_queue = [];
 
 const BookingStatus = {
   Open: Symbol("open"),
@@ -20,113 +20,81 @@ function log(...args) {
   }
 }
 
-async function indexEvents(index) {
+async function indexEventsFromTransactionQueue(index) {
   for (let h = 0; h < transaction_queue.length; h++) {
-    const transactionReceipt = await transaction_queue[h].wait();
+    //const transactionReceipt = await transaction_queue[h].wait();
+    const transactionReceipt = await transaction_queue[h];
+    let time = (
+      await hre.ethers.provider.getBlock(transactionReceipt.blockNumber)
+    ).timestamp;
 
     for (let i = 0; i < transactionReceipt.events.length; i++) {
-      switch (transactionReceipt.events[i].event) {
-        case "RoomPosted":
-          await handleRoomPosted(
-            index,
-            transactionReceipt.events[i],
-            transactionReceipt
-          );
-          break;
-        case "RoomUpdated":
-          await handleRoomUpdated(
-            index,
-            transactionReceipt.events[i],
-            transactionReceipt
-          );
-          break;
-        case "RoomAmenities":
-          await handleAmenityUpdate(
-            index,
-            transactionReceipt.events[i],
-            transactionReceipt
-          );
-          break;
-
-        case "RoomBookableUpdate":
-          await handleRoomBookableUpdate(
-            index,
-            transactionReceipt.events[i],
-            transactionReceipt
-          );
-          break;
-
-        case "RoomBooked":
-          await handleRoomBooked(
-            index,
-            transactionReceipt.events[i],
-            transactionReceipt
-          );
-          break;
-
-        case "RoomCheckedIn":
-          await handleRoomCheckedIn(
-            index,
-            transactionReceipt.events[i],
-            transactionReceipt
-          );
-          break;
-
-        case "RoomCheckedOut":
-          await handleRoomCheckedOut(
-            index,
-            transactionReceipt.events[i],
-            transactionReceipt
-          );
-          break;
-
-        case "RefundBooking":
-          await handleRefundBooking(
-            index,
-            transactionReceipt.events[i],
-            transactionReceipt
-          );
-          break;
-
-        case "CancelBooking":
-          await handleCancelBooking(
-            index,
-            transactionReceipt.events[i],
-            transactionReceipt
-          );
-          break;
-
-        case "OracleRequest":
-          await handleOracleRequest(
-            index,
-            transactionReceipt.events[i],
-            transactionReceipt
-          );
-          break;
-
-        case "OracleResponse":
-          await handleOracleOracleResponse(
-            index,
-            transactionReceipt.events[i],
-            transactionReceipt
-          );
-          break;
-
-        default:
-          log(
-            "Event ",
-            transactionReceipt.events[i].event,
-            " was not handled."
-          );
-          break;
-      }
+      log(transactionReceipt.events[i].event);
+      handleEvent(index, transactionReceipt.events[i], time);
     }
   }
 }
 
-async function handleOracleRequest(index, event, receipt) {
-  let time = (await hre.ethers.provider.getBlock(receipt.blockNumber))
-    .timestamp;
+async function indexEventsFromEventQueue(index) {
+  for (let i = 0; i < event_queue.length; i++) {
+    log(event_queue[i].event);
+    let time = (await hre.ethers.provider.getBlock(event_queue[i].blockNumber))
+      .timestamp;
+    handleEvent(index, event_queue[i], time);
+  }
+}
+
+async function handleEvent(index, Event, time) {
+  switch (Event.event) {
+    case "RoomPosted":
+      await handleRoomPosted(index, Event, time);
+      break;
+    case "RoomUpdated":
+      await handleRoomUpdated(index, Event, time);
+      break;
+    case "RoomAmenities":
+      await handleAmenityUpdate(index, Event, time);
+      break;
+
+    case "RoomBookableUpdate":
+      await handleRoomBookableUpdate(index, Event, time);
+      break;
+
+    case "RoomBooked":
+      await handleRoomBooked(index, Event, time);
+      break;
+
+    case "RoomCheckedIn":
+      await handleRoomCheckedIn(index, Event, time);
+      break;
+
+    case "RoomCheckedOut":
+      await handleRoomCheckedOut(index, Event, time);
+      break;
+
+    case "RefundBooking":
+      await handleRefundBooking(index, Event, time);
+      break;
+
+    case "CancelBooking":
+      await handleCancelBooking(index, Event, time);
+      break;
+
+    case "OracleRequest":
+      await handleOracleRequest(index, Event, time);
+      break;
+
+    case "OracleResponse":
+      await handleOracleResponse(index, Event, time);
+      break;
+
+    default:
+      log("Event ", Event.event, " was not handled.");
+      break;
+  }
+}
+
+async function handleOracleResponse(index, event, time) {
   let requestResponse = index.requestResponse.find(
     (e) => e.id == event.args[0] && e.oracleAddress == event.args[1]
   );
@@ -135,9 +103,7 @@ async function handleOracleRequest(index, event, receipt) {
   requestResponse.responseTime = time;
 }
 
-async function handleOracleRequest(index, event, receipt) {
-  let time = (await hre.ethers.provider.getBlock(receipt.blockNumber))
-    .timestamp;
+async function handleOracleRequest(index, event, time) {
   index.requestResponse.push({
     id: event.args[0],
     invoker: event.args[1],
@@ -149,7 +115,7 @@ async function handleOracleRequest(index, event, receipt) {
   });
 }
 
-async function handleCancelBooking(index, event, receipt) {
+async function handleCancelBooking(index, event, time) {
   let room = index.rooms[event.args[0]];
   let targetBooking = room.booking.find(
     (booking) =>
@@ -161,7 +127,7 @@ async function handleCancelBooking(index, event, receipt) {
   targetBooking.status = BookingStatus.CancelBooking;
 }
 
-async function handleRefundBooking(index, event, receipt) {
+async function handleRefundBooking(index, event, time) {
   let room = index.rooms[event.args[0]];
   let targetBooking = room.booking.find(
     (booking) =>
@@ -173,7 +139,7 @@ async function handleRefundBooking(index, event, receipt) {
   targetBooking.status = BookingStatus.Refunded;
 }
 
-async function handleRoomCheckedOut(index, event, receipt) {
+async function handleRoomCheckedOut(index, event, time) {
   let room = index.rooms[event.args[0]];
   let targetBooking = room.booking.find(
     (booking) =>
@@ -184,10 +150,8 @@ async function handleRoomCheckedOut(index, event, receipt) {
   room.occupant = null;
 }
 
-async function handleRoomCheckedIn(index, event, receipt) {
+async function handleRoomCheckedIn(index, event, time) {
   let room = index.rooms[event.args[0]];
-  let time = (await hre.ethers.provider.getBlock(receipt.blockNumber))
-    .timestamp;
   let targetBooking = room.booking.find(
     (booking) =>
       booking.startTime <= time <= booking.endTime &&
@@ -198,7 +162,7 @@ async function handleRoomCheckedIn(index, event, receipt) {
   room.occupant = event.args[1];
 }
 
-async function handleRoomBooked(index, event, receipt) {
+async function handleRoomBooked(index, event, time) {
   let room = index.rooms[event.args[0]];
   room.bookings.push({
     booker: event.args[1],
@@ -208,7 +172,7 @@ async function handleRoomBooked(index, event, receipt) {
   });
 }
 
-async function handleRoomBookableUpdate(index, event, receipt) {
+async function handleRoomBookableUpdate(index, event, time) {
   let room = index.rooms[event.args[0]];
   room.bookable = event.args[1];
   room.bookableHistory.push({
@@ -217,7 +181,7 @@ async function handleRoomBookableUpdate(index, event, receipt) {
   });
 }
 
-async function handleRoomPosted(index, event, receipt) {
+async function handleRoomPosted(index, event, time) {
   let room = new Object();
   room.index = event.args[0];
 
@@ -242,9 +206,7 @@ async function handleRoomPosted(index, event, receipt) {
   room.uri = event.args[5];
   room.searchDistance = event.args[6];
 
-  room.created = (
-    await hre.ethers.provider.getBlock(receipt.blockNumber)
-  ).timestamp;
+  room.created = time;
   room.bookings = [];
   room.amenities = "";
   room.bookable = true;
@@ -264,24 +226,24 @@ async function handleRoomPosted(index, event, receipt) {
   index.rooms.push(room);
 }
 
-async function handleRoomUpdated(index, event, receipt) {
+async function handleRoomUpdated(index, event, time) {
   let room = index.rooms[event.args[0]];
   room.price = event.args[1];
   room.searchDistance = event.args[2];
   room.uri = event.args[3];
   room.updateHistory.push({
-    time: (await hre.ethers.provider.getBlock(receipt.blockNumber)).timestamp,
+    time: time,
     price: event.args[1],
     uri: event.args[3],
     searchDistance: event.args[2],
   });
 }
 
-async function handleAmenityUpdate(index, event, receipt) {
+async function handleAmenityUpdate(index, event, time) {
   let room = index.rooms[event.args[0]];
   room.amenities = event.args[1];
   room.amenityHistory.push({
-    time: (await hre.ethers.provider.getBlock(receipt.blockNumber)).timestamp,
+    time: time,
     amenities: event.args[1],
   });
 }
@@ -319,8 +281,39 @@ async function deployContracts() {
     initializer: "initialize",
     unsafeAllow: ["external-library-linking"],
   });
+  const currentImplAddress = await booking.getImplementationAddress();
+  const helperMockContract = await ethers.getContractFactory("HelperV1");
 
-  return { owner, otherAccount, tokenMock, oracleMock, lib, booking };
+  const helperMockV1 = await helperMockContract
+    .connect(owner)
+    .deploy(currentImplAddress, tokenMock.address, oracleMock.address);
+
+  await helperMockV1.deployed();
+
+  await booking.connect(owner).setHelper(helperMockV1.address);
+
+  await tokenMock
+    .connect(owner)
+    .transfer(otherAccount.address, ethers.utils.parseUnits("3", 17));
+
+  // Make sure that helper is allowed to transfer link from user
+  await tokenMock
+    .connect(otherAccount)
+    .approve(helperMockV1.address, ethers.utils.parseUnits("1", 17));
+
+  await helperMockV1
+    .connect(otherAccount)
+    .chargeLinkBalance(ethers.utils.parseUnits("1", 17));
+
+  return {
+    owner,
+    otherAccount,
+    tokenMock,
+    oracleMock,
+    lib,
+    booking,
+    helperMockV1,
+  };
 }
 
 async function indexEventsIntoObject() {
@@ -328,20 +321,34 @@ async function indexEventsIntoObject() {
   index.rooms = [];
   index.owners = [];
   index.requestResponse = [];
-  await indexEvents(index);
+  await indexEventsFromTransactionQueue(index);
+  await indexEventsFromEventQueue(index);
   return index;
 }
 
+function addEventsToQueue(events) {
+  for (let h = 0; h < events.length; h++) {
+    event_queue.push(events[h]);
+  }
+}
+
 async function main() {
-  const { owner, otherAccount, tokenMock, oracleMock, lib, booking } =
-    await deployContracts();
+  const {
+    owner,
+    otherAccount,
+    tokenMock,
+    oracleMock,
+    lib,
+    booking,
+    helperMockV1,
+  } = await deployContracts();
 
   log("Deployed the contracts and library.");
 
   const posting = await booking
     .connect(otherAccount)
     .postRoom(ethers.utils.parseUnits("50", 18), 0, 20, "TestURI", 500, false);
-  transaction_queue.push(posting);
+  transaction_queue.push(await posting.wait());
 
   // Increase time by 1 seconds
   await time.increaseTo((await time.latest()) + 1000);
@@ -349,10 +356,42 @@ async function main() {
   const updateRoom = await booking
     .connect(otherAccount)
     .updateRoom(0, 30, "URI2", 333);
-  transaction_queue.push(updateRoom);
+  transaction_queue.push(await updateRoom.wait());
+
+  var reqId1 = await helperMockV1.getRequestId(1);
+
+  const requestTransaction = await booking
+    .connect(otherAccount)
+    .updateAmenities(0);
+
+  // Increase time by 1 seconds
+  await time.increaseTo((await time.latest()) + 1000);
+
+  const fullfillRequestTransaction = await oracleMock
+    .connect(owner)
+    .fulfillHelperRequest(reqId1, 0, 1);
+
+  latestBlock = await hre.ethers.provider.getBlock("latest");
+  events = await helperMockV1.queryFilter("*", 0, latestBlock.number);
+  addEventsToQueue(events);
 
   const index = await indexEventsIntoObject();
-  log(index);
+
+  // Check the index for some information
+  assert(index.rooms[0].price == 30);
+  assert(index.rooms.length == 1);
+  assert(index.owners.length == 1);
+  assert(index.requestResponse.find((e) => e.id == reqId1));
+  assert(
+    index.requestResponse[0].response[0] == 0 &&
+      index.requestResponse[0].response[1] == 1
+  );
+
+  log("Owners:");
+  log(index.owners);
+
+  log("Response history:");
+  log(index.requestResponse);
 }
 
 main().catch((error) => {
