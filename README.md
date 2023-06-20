@@ -12,35 +12,46 @@ npx hardhat node
 npx hardhat run scripts/deploy.js
 ```
 
-
 Notes:
 
 Compile:
+
 ```
 npx hardhat compile
 ```
 
 Force Compile:
+
 ```
 npx hardhat compile --force
 ```
 
 Run tests:
+
 ```
 npx hardhat test
 ```
 
 Clean cache
+
 ```
 npx hardhat clean
 ```
 
 Check contract sizes after compilation:
+
 ```
 npx hardhat size-contracts
 ```
 
 Check contract sizes without compilation:
+
 ```
 npx hardhat size-contracts --no-compile
+```
+
+Run Example indexing script
+
+```
+npx hardhat run ./scripts/eventIndexExample.js
 ```

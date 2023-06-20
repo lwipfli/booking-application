@@ -7,24 +7,21 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./../BookingInterface.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/OwnableInterface.sol";
+import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 
 /// @title POC Room booking contract
 /// @author Lorenzo Wipfli
 /// @notice This contract can be used to post rooms for booking and book them, in addition to using a
 /// Chainlink oracle for amenity information. This contract is a proof-of-concept.
-contract BookingContractGas is BookingInterface, Initializable {
+contract BookingContractGas is
+    BookingInterface,
+    Initializable,
+    OracleHelper,
+    ChainlinkClient
+{
     using PRBMathSD59x18 for int256;
 
-    /// EVENTS ///
-
-    /// @notice Indicates the posting of a room.
-    /// @param roomIndex Index of the room.
-    /// @param owner Address of the room owner.
-    /// @param pricePerDay Price per day for booking.
-    /// @param latitude Latitude value from -90 to 90 times 10^18.
-    /// @param longitude Longitude value from -180 to 180 times 10^18.
-    /// @param uri URI string for further room information.
-    /// @param searchDistance Distance radius for price adaption and amenity search.
     event RoomPosted(
         uint indexed roomIndex,
         address indexed owner,
@@ -35,11 +32,6 @@ contract BookingContractGas is BookingInterface, Initializable {
         uint searchDistance
     );
 
-    /// @notice Indicates updated room offer.
-    /// @param roomIndex Index of the room.
-    /// @param pricePerDay Updated room price per day for booking.
-    /// @param searchRadius Updated search radius for price adaption and amenity search.
-    /// @param uri Updated URI string for further room information.
     event RoomUpdated(
         uint indexed roomIndex,
         uint pricePerDay,
@@ -47,21 +39,10 @@ contract BookingContractGas is BookingInterface, Initializable {
         string uri
     );
 
-    /// @notice Indicates new room amenities available in surrounding.
-    /// @param roomIndex Index of the room.
-    /// @param amenities Amenities string description of room.
     event RoomAmenities(uint indexed roomIndex, string amenities);
 
-    /// @notice Indicates Changes to specific room bookability.
-    /// @param roomIndex Index of the room.
-    /// @param bookable Truth value of room bookability.
     event RoomBookableUpdate(uint indexed roomIndex, bool bookable);
 
-    /// @notice Indicates that a room has been booked for a certain time.
-    /// @param roomIndex Index of the room.
-    /// @param booker Address of the booker.
-    /// @param startTime Start time of booking in unix time.
-    /// @param endTime End time of booking in unix time.
     event RoomBooked(
         uint indexed roomIndex,
         address indexed booker,
@@ -69,21 +50,10 @@ contract BookingContractGas is BookingInterface, Initializable {
         uint endTime
     );
 
-    /// @notice Indicates that a room has been checked in by booker.
-    /// @param roomIndex Index of the room.
-    /// @param booker Address of the booker.
     event RoomCheckedIn(uint indexed roomIndex, address indexed booker);
 
-    /// @notice Indicates that a room has been checked out by booker.
-    /// @param roomIndex Index of the room.
-    /// @param booker Address of the booker.
     event RoomCheckedOut(uint indexed roomIndex, address indexed booker);
 
-    /// @notice Indicates that a room booking has been refunded by the booker.
-    /// @param roomIndex Index of the room.
-    /// @param booker Address of the booker.
-    /// @param startTime Start time of booking in unix time.
-    /// @param endTime End time of booking in unix time.
     event RefundBooking(
         uint indexed roomIndex,
         address indexed booker,
@@ -91,11 +61,6 @@ contract BookingContractGas is BookingInterface, Initializable {
         uint endTime
     );
 
-    /// @notice Indicates that an unused room booking has been removed by the room owner.
-    /// @param roomIndex Index of the room.
-    /// @param booker Address of the booker.
-    /// @param startTime Start time of booking in unix time.
-    /// @param endTime End time of booking in unix time.
     event CancelBooking(
         uint indexed roomIndex,
         address indexed booker,
@@ -103,21 +68,15 @@ contract BookingContractGas is BookingInterface, Initializable {
         uint endTime
     );
 
-    /// MODIFIERS ///
-
-    /// @dev Checks that requested room by index does exist by checking if the index is possible.
     modifier roomIndexCheck(uint roomIndex) {
         require((rooms.length > roomIndex) && (roomIndex >= 0));
         _;
     }
 
-    /// @dev Checks if the transaction origin is the owner of the booking contract.
     modifier onlyOwner() {
         require((tx.origin == owner));
         _;
     }
-
-    /// STORAGE ///
 
     address private owner;
     address private helper;
@@ -126,21 +85,35 @@ contract BookingContractGas is BookingInterface, Initializable {
 
     mapping(address => uint[]) private roomsCreatedByOwners;
     mapping(address => uint) private pendingWithdrawals;
+    mapping(address => uint) private linkBalance;
+    mapping(bytes32 => uint) private roomIndexPerReqId;
 
-    /// @dev Initializer function for OpenZeppeling upgrades
+    uint requestCounter;
+    address private parent;
+    bytes32 private jobId;
+    uint256 private fee;
+    uint versionNumber;
+
     function initialize() public initializer {
         owner = tx.origin;
+        requestCounter = 0;
+        versionNumber = 1;
+        jobId = "JOBID";
+        fee = (1 * LINK_DIVISIBILITY) / 10;
     }
 
-    /// @notice Start change ownership of oracle helper contract.
-    /// @dev Should be used when only main contract is upgraded so that helper can still be used by new contract.
-    /// @param newOwner New owner address of booking contract
+    function chainlinkSetup(
+        address linkToken,
+        address oracle
+    ) public onlyOwner {
+        setChainlinkToken(linkToken);
+        setChainlinkOracle(oracle);
+    }
+
     function changeOwnerOfHelper(address newOwner) public onlyOwner {
         OwnableInterface(helper).transferOwnership(newOwner);
     }
 
-    /// @notice Accept ownership of oracle helper contract if proposed.
-    /// @dev Should be sued when only main contract is upgraded so that helper can still be used by new contract.
     function acceptOwnershipOfHelper() public onlyOwner {
         OwnableInterface(helper).acceptOwnership();
     }
@@ -151,6 +124,133 @@ contract BookingContractGas is BookingInterface, Initializable {
 
     function getNumberOfRooms() public view returns (uint) {
         return rooms.length;
+    }
+
+    function chargeLinkBalance(uint linkAmount) public {
+        LinkTokenInterface(chainlinkTokenAddress()).transferFrom(
+            msg.sender,
+            address(this),
+            linkAmount
+        );
+        linkBalance[msg.sender] += linkAmount;
+    }
+
+    function withdrawLink() public {
+        require(linkBalance[msg.sender] > 0);
+        uint amount = linkBalance[msg.sender];
+        linkBalance[msg.sender] = 0;
+
+        LinkTokenInterface(chainlinkTokenAddress()).transfer(
+            msg.sender,
+            amount
+        );
+    }
+
+    function callMapForRoom(
+        address origin,
+        string calldata latitude,
+        string calldata longitude,
+        string calldata distance,
+        uint roomIndex
+    ) public {
+        require(linkBalance[tx.origin] >= fee);
+
+        Chainlink.Request memory req = buildChainlinkRequest(
+            jobId,
+            address(this),
+            this.fulfillMultipleParameters.selector
+        );
+
+        string memory restaurantget = string(
+            abi.encodePacked(
+                "https://www.overpass-api.de/api/interpreter?data=[out:json];nwr[",
+                '"',
+                "amenity",
+                '"',
+                "~",
+                '"',
+                "restaurant",
+                '"',
+                "](around:",
+                distance,
+                ",",
+                latitude,
+                ",",
+                longitude,
+                ");out%20count;"
+            )
+        );
+
+        string memory cafeget = string(
+            abi.encodePacked(
+                "https://www.overpass-api.de/api/interpreter?data=[out:json];nwr[",
+                '"',
+                "amenity",
+                '"',
+                "~",
+                '"',
+                "cafe",
+                '"',
+                "](around:",
+                distance,
+                ",",
+                latitude,
+                ",",
+                longitude,
+                ");out%20count;"
+            )
+        );
+
+        req.add("get", restaurantget);
+        // Path corresponds to elements[0].tags.total
+        req.add("pathRestaurant", "elements,0,tags,total");
+        req.add("get", cafeget);
+        req.add("pathCafe", "elements,0,tags,total");
+        linkBalance[origin] -= fee;
+        sendChainlinkRequest(req, fee);
+        roomIndexPerReqId[getRequestId(requestCounter)] = roomIndex;
+
+        emit OracleRequest(
+            getRequestId(requestCounter),
+            origin,
+            latitude,
+            longitude,
+            distance,
+            chainlinkOracleAddress()
+        );
+
+        requestCounter++;
+    }
+
+    function fulfillMultipleParameters(
+        bytes32 _requestId,
+        uint256 restaurant,
+        uint256 cafe
+    ) public recordChainlinkFulfillment(_requestId) {
+        uint[] memory result = new uint[](2);
+        result[0] = restaurant;
+        result[1] = cafe;
+
+        addAmenitiesToRoom(roomIndexPerReqId[_requestId], result);
+
+        emit OracleResponse(
+            _requestId,
+            msg.sender,
+            roomIndexPerReqId[_requestId],
+            result
+        );
+    }
+
+    function getRequestId(uint256 count) public view returns (bytes32) {
+        return keccak256(abi.encodePacked(this, count));
+    }
+
+    function getFulfillSelector() public view returns (bytes4 selector) {
+        return this.fulfillMultipleParameters.selector;
+    }
+
+    function getVersionNumber() external view returns (uint) {
+        return versionNumber;
     }
 
     /// @notice Gives the room indices of the respective owner.
@@ -268,7 +368,7 @@ contract BookingContractGas is BookingInterface, Initializable {
     function addAmenitiesToRoom(
         uint roomIndex,
         uint[] memory amenities
-    ) external {
+    ) public {
         Room storage room = rooms[roomIndex];
         require(msg.sender == helper);
         require(amenities.length <= uint(type(BookingLib.Amenity).max) + 1);
