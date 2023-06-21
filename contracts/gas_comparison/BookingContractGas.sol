@@ -21,6 +21,7 @@ contract BookingContractGas is
     ChainlinkClient
 {
     using PRBMathSD59x18 for int256;
+    using Chainlink for Chainlink.Request;
 
     event RoomPosted(
         uint indexed roomIndex,
