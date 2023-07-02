@@ -8,15 +8,20 @@ function log(...args) {
   }
 }
 
-
 //Total gas cost computation from: https://ethereum.stackexchange.com/questions/92353/how-do-i-find-the-gasprice-of-a-confirmed-transaction-with-ethers-js
 
-function getCost(receipt) {
+function getTotalCost(receipt) {
   return receipt.effectiveGasPrice.mul(receipt.gasUsed);
-};
+}
 
+function getTotalGasDifference(receipt1, receipt2) {
+  return (
+    receipt1.effectiveGasPrice.mul(receipt1.gasUsed) -
+    receipt2.effectiveGasPrice.mul(receipt2.gasUsed)
+  );
+}
 
-async function deployContracts() {
+async function deployContractsAndLogCosts() {
   const [owner, otherAccount] = await hre.ethers.getSigners();
 
   const tokenMockContract = await hre.ethers.getContractFactory(
@@ -31,59 +36,99 @@ async function deployContracts() {
     .deploy(tokenMock.address);
   await oracleMock.deployed();
 
-  const Lib = await hre.ethers.getContractFactory("BookingLib");
-  const lib = await Lib.deploy();
-  await lib.deployed();
+  const BookingContractWithoutHelper = await hre.ethers.getContractFactory(
+    "ContractMockBookingWithoutHelper"
+  );
 
-  log("Library gas price: ",await lib.deployTransaction.gasPrice.toString());
-  log("Library deplyoment cost: ",getCost(await lib.deployTransaction.wait()).toString());
-
-  const BookingContract = await hre.ethers.getContractFactory(
-    "BookingContract",
+  const bookingWithoutHelper = await upgrades.deployProxy(
+    BookingContractWithoutHelper,
     {
-      signer: otherAccount[0],
-      libraries: {
-        BookingLib: lib.address,
-      },
+      initializer: "initialize",
     }
   );
 
-  const booking = await upgrades.deployProxy(BookingContract, {
-    initializer: "initialize",
-    unsafeAllow: ["external-library-linking"],
-  });
+  const BookingContractWithHelper = await hre.ethers.getContractFactory(
+    "ContractMockBookingWithHelper"
+  );
 
-  log("Booking gas price: ",await booking.deployTransaction.gasPrice.toString());
-  log("Booking deplyoment cost: ",getCost(await booking.deployTransaction.wait()).toString());
-  
+  const bookingWithHelper = await upgrades.deployProxy(
+    BookingContractWithHelper,
+    {
+      initializer: "initialize",
+    }
+  );
 
-  const currentImplAddress = await booking.getImplementationAddress();
-  const helperMockContract = await ethers.getContractFactory("HelperV1");
+  const currentImplAddress = await bookingWithHelper.getImplementationAddress();
+  const helperMockContract = await ethers.getContractFactory("HelperGas");
 
-  const helperMockV1 = await helperMockContract
+  const helper = await helperMockContract
     .connect(owner)
     .deploy(currentImplAddress, tokenMock.address, oracleMock.address);
 
-  await helperMockV1.deployed();
+  await helper.deployed();
 
-  log("Helper gas price: ",await helperMockV1.deployTransaction.gasPrice.toString());
-  log("Helper deplyoment cost: ",getCost(await helperMockV1.deployTransaction.wait()).toString());
+  const helperlinkTransaction = await bookingWithHelper
+    .connect(owner)
+    .setHelper(helper.address);
+  const setUpTransaction = await bookingWithoutHelper.chainlinkSetup(
+    tokenMock.address,
+    oracleMock.address
+  );
 
-  const helperlinkTransaction = await booking.connect(owner).setHelper(helperMockV1.address);
+  var bookingWithoutHelperCost = (
+    await bookingWithoutHelper.deployTransaction.wait()
+  ).gasUsed;
+  var bookingWithHelperCost = (await bookingWithHelper.deployTransaction.wait())
+    .gasUsed;
+  var helperCost = (await helper.deployTransaction.wait()).gasUsed;
 
-  log("HelperLink gas price: ",helperlinkTransaction.gasPrice.toString());
-  log("HelperLink cost: ",getCost(await helperlinkTransaction.wait()).toString());
+  var helperLinkCost = (await helperlinkTransaction.wait()).gasUsed;
+
+  var setUpWithoutHelperCost = (await setUpTransaction.wait()).gasUsed;
+
+  log("Gas limits for transactions:");
+
+  log(
+    "",
+    bookingWithoutHelperCost.toString(),
+    "cost of contract without Helper."
+  );
+
+  log(" ", setUpWithoutHelperCost.toString(), "cost of setup without Helper.");
+
+  log("", bookingWithHelperCost.toString(), "cost of contract with Helper.");
+
+  log(helperCost.toString(), "cost of helper.");
+
+  log(" ", helperLinkCost.toString(), "cost of linking helper.");
+
+  log(
+    bookingWithHelperCost
+      .add(helperCost)
+      .add(helperLinkCost)
+      .sub(bookingWithoutHelperCost)
+      .sub(setUpWithoutHelperCost)
+      .toString(),
+    " difference."
+  );
 
   await tokenMock
     .connect(owner)
     .transfer(otherAccount.address, ethers.utils.parseUnits("3", 17));
 
-  // Make sure that helper is allowed to transfer link from user
   await tokenMock
     .connect(otherAccount)
-    .approve(helperMockV1.address, ethers.utils.parseUnits("1", 17));
+    .approve(helper.address, ethers.utils.parseUnits("1", 17));
 
-  await helperMockV1
+  await tokenMock
+    .connect(otherAccount)
+    .approve(bookingWithoutHelper.address, ethers.utils.parseUnits("1", 17));
+
+  await helper
+    .connect(otherAccount)
+    .chargeLinkBalance(ethers.utils.parseUnits("1", 17));
+
+  await bookingWithoutHelper
     .connect(otherAccount)
     .chargeLinkBalance(ethers.utils.parseUnits("1", 17));
 
@@ -92,9 +137,9 @@ async function deployContracts() {
     otherAccount,
     tokenMock,
     oracleMock,
-    lib,
-    booking,
-    helperMockV1,
+    bookingWithoutHelper,
+    bookingWithHelper,
+    helper,
   };
 }
 
@@ -104,14 +149,40 @@ async function main() {
     otherAccount,
     tokenMock,
     oracleMock,
-    lib,
-    booking,
-    helperMockV1,
-  } = await deployContracts();
-  
+    bookingWithoutHelper,
+    bookingWithHelper,
+    helper,
+  } = await deployContractsAndLogCosts();
 
+  const transactionWithoutHelper = await bookingWithoutHelper
+    .connect(otherAccount)
+    .callMapForRoom(otherAccount.address, "50.0", "0.0", "10.0", 0);
 
+  const transactionWithtHelper = await bookingWithHelper
+    .connect(otherAccount)
+    .callMapForRoom(otherAccount.address, "50.0", "0.0", "10.0", 0);
 
+  var RequestTransactionWithoutHelperCost = (
+    await transactionWithoutHelper.wait()
+  ).gasUsed;
+
+  var RequestTransactionWithHelperCost = (await transactionWithtHelper.wait())
+    .gasUsed;
+
+  log(
+    RequestTransactionWithoutHelperCost.toString(),
+    "request cost without helper."
+  );
+
+  log(RequestTransactionWithHelperCost.toString(), "request cost with helper.");
+
+  log(
+    "",
+    RequestTransactionWithoutHelperCost.sub(
+      RequestTransactionWithHelperCost
+    ).toString(),
+    "difference of request transaction costs."
+  );
 }
 
 main().catch((error) => {
