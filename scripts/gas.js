@@ -36,16 +36,7 @@ async function deployContractsAndLogCosts() {
     .deploy(tokenMock.address);
   await oracleMock.deployed();
 
-  const BookingContractWithoutHelper = await hre.ethers.getContractFactory(
-    "ContractMockBookingWithoutHelper"
-  );
-
-  const bookingWithoutHelper = await upgrades.deployProxy(
-    BookingContractWithoutHelper,
-    {
-      initializer: "initialize",
-    }
-  );
+  /*****/
 
   const BookingContractWithHelper = await hre.ethers.getContractFactory(
     "ContractMockBookingWithHelper"
@@ -70,10 +61,26 @@ async function deployContractsAndLogCosts() {
   const helperlinkTransaction = await bookingWithHelper
     .connect(owner)
     .setHelper(helper.address);
+
+  /*****/
+
+  const BookingContractWithoutHelper = await hre.ethers.getContractFactory(
+    "ContractMockBookingWithoutHelper"
+  );
+
+  const bookingWithoutHelper = await upgrades.deployProxy(
+    BookingContractWithoutHelper,
+    {
+      initializer: "initialize",
+    }
+  );
+
   const setUpTransaction = await bookingWithoutHelper.chainlinkSetup(
     tokenMock.address,
     oracleMock.address
   );
+
+  /*****/
 
   var bookingWithoutHelperCost = (
     await bookingWithoutHelper.deployTransaction.wait()
@@ -183,6 +190,82 @@ async function main() {
     ).toString(),
     "difference of request transaction costs."
   );
+
+  var requIDHelper = await helper.getRequestId(1);
+
+  var responseWithHelper = await oracleMock
+    .connect(owner)
+    .fulfillHelperRequest(requIDHelper, 0, 1);
+
+  var ResponseTransactionWithHelperCost = (await responseWithHelper.wait())
+    .gasUsed;
+
+  var requIDWithoutHelper = await bookingWithoutHelper.getRequestId(1);
+
+  var responseWithoutHelper = await oracleMock
+    .connect(owner)
+    .fulfillHelperRequest(requIDWithoutHelper, 0, 1);
+
+  var ResponseTransactionWithoutHelperCost = (
+    await responseWithoutHelper.wait()
+  ).gasUsed;
+
+  log(
+    ResponseTransactionWithHelperCost.toString(),
+    "response cost with helper."
+  );
+
+  log(
+    ResponseTransactionWithoutHelperCost.toString(),
+    "response cost without helper."
+  );
+
+  log(
+    "",
+    ResponseTransactionWithHelperCost.sub(
+      ResponseTransactionWithoutHelperCost
+    ).toString(),
+    "difference of response transaction costs."
+  );
+
+  /*
+  First without helper, then helper
+
+  Gas limits for transactions:
+   703649 cost of contract without Helper.
+    73845 cost of setup without Helper.
+
+   612834 cost of contract with Helper.
+  1608679 cost of Helper.
+    34101 cost of linking Helper.
+  1478120 difference.
+
+  199930 request cost without helper.
+  173820 request cost with helper.
+   26110 difference of request transactions.
+   49934 response cost with helper.
+   43916 response cost without helper.
+    6018 difference of response transactions cost.
+
+
+  First with helper, then without
+
+  Gas limits for transactions:
+   703649 cost of contract without Helper.
+    73845 cost of setup without Helper.
+
+   612834 cost of contract with Helper.
+  1608667 cost of Helper.
+    34101 cost of linking Helper.
+  1478108 difference.
+
+  199930 request cost without helper.
+  173820 request cost with helper.
+   26110 difference of request transactions.
+   49946 response cost with helper.
+   43916 response cost without helper.
+    6030 difference of response transactions cost.
+  */
 }
 
 main().catch((error) => {
