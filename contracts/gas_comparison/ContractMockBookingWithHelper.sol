@@ -32,7 +32,7 @@ contract ContractMockBookingWithHelper is BookingGasInterface, Initializable {
         );
     }
 
-    function addAmenitiesToRoom(uint[] memory result) external {
+    function addAmenitiesToRoom(uint256[] memory result) external {
         doWhatever(result);
     }
 

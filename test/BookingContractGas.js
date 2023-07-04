@@ -144,6 +144,14 @@ describe("BookingContractGas tests", function () {
           "10.0",
           oracleMock.address
         );
+
+      const response = await oracleMock
+        .connect(owner)
+        .fulfillHelperRequest(requID, 0, 1);
+
+      expect(response)
+        .emit(booking, "OracleResponse")
+        .withArgs(requID, oracleMock.address, 0, [0, 1]);
     });
 
     it("Reqest update for room for contract with helper.", async function () {
@@ -159,12 +167,12 @@ describe("BookingContractGas tests", function () {
 
       var requID = await helper.getRequestId(1);
 
-      expect(
-        await booking
-          .connect(otherAccount)
-          .callMapForRoom(otherAccount.address, "50.0", "0.0", "10.0", 0)
-      )
-        .emit(booking, "OracleRequest")
+      const request = await booking
+        .connect(otherAccount)
+        .callMapForRoom(otherAccount.address, "50.0", "0.0", "10.0", 0);
+
+      expect(request)
+        .emit(helper, "OracleRequest")
         .withArgs(
           requID,
           otherAccount.address,
@@ -173,6 +181,14 @@ describe("BookingContractGas tests", function () {
           "10.0",
           oracleMock.address
         );
+
+      const response = await oracleMock
+        .connect(owner)
+        .fulfillHelperRequest(requID, 0, 1);
+
+      expect(response)
+        .emit(booking, "OracleResponse")
+        .withArgs(requID, oracleMock.address, 0, [0, 1]);
     });
   });
 });
