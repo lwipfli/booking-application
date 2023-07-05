@@ -229,6 +229,7 @@ async function main() {
   );
 
   /*
+  Run configuration 2000
   First without helper, then helper
 
   Gas limits for transactions:
@@ -265,6 +266,10 @@ async function main() {
    49946 response cost with helper.
    43916 response cost without helper.
     6030 difference of response transactions cost.
+
+
+  
+  Run configuration 200
   */
 }
 

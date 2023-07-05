@@ -2,7 +2,7 @@ pragma solidity ^0.8.9;
 
 import "./../OracleHelperInterface.sol";
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
-import "./ContractMockBookingWithHelper.sol";
+import "./BookingGasInterface.sol";
 
 // Adapted from https://docs.chain.link/any-api/get-request/examples/multi-variable-responses/ and https://docs.chain.link/any-api/get-request/examples/array-response
 
@@ -145,7 +145,7 @@ contract HelperGas is OracleHelper, ChainlinkClient {
         result[0] = restaurant;
         result[1] = cafe;
 
-        ContractMockBookingWithHelper(parent).addAmenitiesToRoom(result);
+        BookingGasInterface(parent).addAmenitiesToRoom(result);
 
         emit OracleResponse(
             _requestId,

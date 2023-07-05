@@ -3,10 +3,8 @@ pragma solidity ^0.8.9;
 import "./../OracleHelperInterface.sol";
 import "./BookingGasInterface.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./AdaptedChainlinkClient.sol";
 
 contract ContractMockBookingWithHelper is BookingGasInterface, Initializable {
-    using Chainlink for Chainlink.Request;
 
     address private helper;
 
