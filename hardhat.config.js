@@ -13,7 +13,7 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200,
+            runs: 2000,
             //details: { yul: false },
           },
         },
@@ -23,7 +23,7 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200,
+            runs: 2000,
             //details: { yul: false },
           },
         },
@@ -33,7 +33,7 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200,
+            runs: 2000,
             //details: { yul: false },
           },
         },
@@ -43,7 +43,7 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200,
+            runs: 2000,
             //details: { yul: false },
           },
         },

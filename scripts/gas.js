@@ -85,6 +85,7 @@ async function deployContractsAndLogCosts() {
   var bookingWithoutHelperCost = (
     await bookingWithoutHelper.deployTransaction.wait()
   ).gasUsed;
+
   var bookingWithHelperCost = (await bookingWithHelper.deployTransaction.wait())
     .gasUsed;
   var helperCost = (await helper.deployTransaction.wait()).gasUsed;
@@ -228,28 +229,45 @@ async function main() {
     "difference of response transaction costs."
   );
 
+  /****Check for helper with proxy to check if proxy costs less.****/
+
+  log("");
+  const currentImplAddress = await bookingWithHelper.getImplementationAddress();
+  const HelperGasProxy = await hre.ethers.getContractFactory("HelperGasProxy");
+
+  const helperGasProxy = await upgrades.deployProxy(HelperGasProxy, {
+    initializer: "initialize",
+  });
+
+  const setUphelperGasProxyTransaction = await helperGasProxy.setup(
+    currentImplAddress,
+    tokenMock.address,
+    oracleMock.address
+  );
+
+  var helperGasProxyCost = (await helperGasProxy.deployTransaction.wait())
+    .gasUsed;
+
+  var setUphelperGasProxyTransactionCost = (
+    await setUphelperGasProxyTransaction.wait()
+  ).gasUsed;
+
+  log(
+    helperGasProxyCost.toString(),
+    "cost for deploying helper gas with proxy."
+  );
+
+  log(
+    "",
+    setUphelperGasProxyTransactionCost.toString(),
+    "cost for setting up helper gas with proxy."
+  );
+
   /*
+
+  Run sizes will have to be adjusted to compare costs.
+
   Run configuration 2000
-  First without helper, then helper
-
-  Gas limits for transactions:
-   703649 cost of contract without Helper.
-    73845 cost of setup without Helper.
-
-   612834 cost of contract with Helper.
-  1608679 cost of Helper.
-    34101 cost of linking Helper.
-  1478120 difference.
-
-  199930 request cost without helper.
-  173820 request cost with helper.
-   26110 difference of request transactions.
-   49934 response cost with helper.
-   43916 response cost without helper.
-    6018 difference of response transactions cost.
-
-
-  First with helper, then without
 
   Gas limits for transactions:
    703649 cost of contract without Helper.
@@ -258,18 +276,46 @@ async function main() {
    612834 cost of contract with Helper.
   1608667 cost of Helper.
     34101 cost of linking Helper.
+
   1478108 difference.
 
   199930 request cost without helper.
   173820 request cost with helper.
+
    26110 difference of request transactions.
+
    49946 response cost with helper.
    43916 response cost without helper.
+
     6030 difference of response transactions cost.
 
-
+   723572 cost for deploying helper with proxy.
+    79379 cost for setting up helper with proxy.
   
   Run configuration 200
+
+  Gas limits for transactions:
+   703702 cost of contract without Helper.
+    73846 cost of setup without Helper.
+
+   612859 cost of contract with Helper.
+  1391700 cost of Helper.
+    34162 cost of linking Helper.
+
+  1261173 difference.
+
+  200892 request cost without helper.
+  174809 request cost with helper.
+
+   26083 difference of request transactions.
+
+   50035 response cost with helper.
+   43999 response cost without helper.
+
+    6036 difference of response transactions cost.
+   
+   723603 cost for deploying helper with proxy.
+    79940 cost for setting up helper with proxy.
   */
 }
 
