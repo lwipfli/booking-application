@@ -1,12 +1,12 @@
 pragma solidity ^0.8.9;
 
 import "./../OracleHelperInterface.sol";
-import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
+import "./AdaptedChainlinkClient.sol";
 import "./BookingGasInterface.sol";
 
 // Adapted from https://docs.chain.link/any-api/get-request/examples/multi-variable-responses/ and https://docs.chain.link/any-api/get-request/examples/array-response
 
-contract HelperGas is OracleHelper, ChainlinkClient {
+contract HelperGas is OracleHelper, AdaptedChainlinkClient {
     using Chainlink for Chainlink.Request;
 
     address private parent;
@@ -38,6 +38,7 @@ contract HelperGas is OracleHelper, ChainlinkClient {
         setChainlinkOracle(oracleAddress);
         jobId = "JOBID";
         fee = (1 * LINK_DIVISIBILITY) / 10;
+        s_requestCount = 1;
     }
 
     function chargeLinkBalance(uint linkAmount) public {
