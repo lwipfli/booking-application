@@ -230,7 +230,8 @@ async function main() {
   );
 
   /****Check for helper with proxy to check if proxy costs less.****/
-
+  /**** Not needed any longer. ****/
+  /*
   log("");
   const currentImplAddress = await bookingWithHelper.getImplementationAddress();
   const HelperGasProxy = await hre.ethers.getContractFactory("HelperGasProxy");
@@ -262,6 +263,7 @@ async function main() {
     setUphelperGasProxyTransactionCost.toString(),
     "cost for setting up helper gas with proxy."
   );
+  */
 
   /*
 
@@ -289,8 +291,7 @@ async function main() {
 
     6030 difference of response transactions cost.
 
-   723572 cost for deploying helper with proxy.
-    79379 cost for setting up helper with proxy.
+
   
   Run configuration 200
 
@@ -314,8 +315,6 @@ async function main() {
 
     6036 difference of response transactions cost.
    
-   723603 cost for deploying helper with proxy.
-    79940 cost for setting up helper with proxy.
   */
 }
 

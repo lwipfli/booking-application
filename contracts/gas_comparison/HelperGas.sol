@@ -4,8 +4,6 @@ import "./../OracleHelperInterface.sol";
 import "./AdaptedChainlinkClient.sol";
 import "./BookingGasInterface.sol";
 
-// Adapted from https://docs.chain.link/any-api/get-request/examples/multi-variable-responses/ and https://docs.chain.link/any-api/get-request/examples/array-response
-
 contract HelperGas is OracleHelper, AdaptedChainlinkClient {
     using Chainlink for Chainlink.Request;
 

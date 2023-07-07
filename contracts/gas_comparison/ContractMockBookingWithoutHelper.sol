@@ -60,7 +60,7 @@ contract ContractMockBookingWithoutHelper is
         string memory latitude,
         string memory longitude,
         string memory distance,
-        uint roomIndex
+        uint256 roomIndex
     ) external {
         require(linkBalance[tx.origin] >= fee);
 
@@ -111,7 +111,6 @@ contract ContractMockBookingWithoutHelper is
         );
 
         req.add("get", restaurantget);
-        // Path corresponds to elements[0].tags.total
         req.add("pathRestaurant", "elements,0,tags,total");
         req.add("get", cafeget);
         req.add("pathCafe", "elements,0,tags,total");
