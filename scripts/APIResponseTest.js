@@ -25,7 +25,7 @@ async function main() {
     [distance, latitude, longitude].join(",") +
     ");out%20count;";
 
-  var times = 10;
+  var times = 100;
   console.log("REQUEST: " + RequestURL);
   console.log("Distance " + distance);
   for (let i = 0; i < times; i++) {
